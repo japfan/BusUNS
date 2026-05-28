@@ -1,26 +1,42 @@
-# PRD — BusUNS: Sistem Informasi Jadwal dan Rute Bus Kampus
+# PRD — BusUNS: Sistem Informasi Jadwal Bus Kampus Berbasis Halte
 
 ## 1. Ringkasan Produk
 
-**BusUNS** adalah web app yang menyediakan informasi jadwal dan rute bus kampus untuk mahasiswa. Sistem ini membantu mahasiswa mengetahui jam keberangkatan, rute yang tersedia, halte yang dilewati, serta pengumuman operasional bus kampus.
+**BusUNS** adalah web app yang menyediakan informasi jadwal bus kampus UNS. Sistem ini membantu mahasiswa melihat jadwal keberangkatan bus berdasarkan halte yang dipilih.
 
-Pada tahap awal, BusUNS **tidak menggunakan fitur tracking GPS atau live location**. Fokus utama sistem adalah menampilkan informasi jadwal dan rute secara jelas, mudah diakses, dan dapat diperbarui oleh admin.
+Pada tahap awal, BusUNS **tidak menggunakan fitur tracking GPS, live location, atau estimasi waktu tiba real-time**. Fokus utama sistem adalah menyediakan informasi jadwal bus yang mudah diakses, berbasis halte, dan dapat diperbarui oleh admin.
+
+Konsep utama BusUNS adalah:
+
+> Mahasiswa memilih halte terlebih dahulu, lalu sistem menampilkan jadwal keberangkatan bus dari halte tersebut.
+
+BusUNS hanya memiliki **satu rute utama** yang terdiri dari beberapa halte. Oleh karena itu, sistem tidak menggunakan konsep banyak rute seperti Rute A, Rute B, dan Rute C.
+
+---
 
 ## 2. Latar Belakang
 
-Mahasiswa sering mengalami kesulitan mengetahui jadwal keberangkatan bus kampus secara pasti. Informasi jadwal biasanya tersebar, tidak selalu diperbarui, atau hanya tersedia secara manual di titik tertentu. Akibatnya, mahasiswa dapat menunggu terlalu lama di halte atau tidak mengetahui rute bus yang sesuai dengan tujuan mereka.
+Mahasiswa sering mengalami kesulitan mengetahui jadwal keberangkatan bus kampus dari halte tertentu. Informasi jadwal bus sering kali tidak tersedia secara terpusat, sulit diperbarui, atau hanya diketahui melalui informasi manual.
 
-Untuk mengatasi masalah tersebut, diperlukan web app yang dapat menjadi pusat informasi jadwal dan rute bus kampus. Sistem ini dapat diakses melalui browser dan dapat dihubungkan dengan QR code yang ditempel di halte.
+Akibatnya, mahasiswa dapat menunggu terlalu lama di halte karena tidak mengetahui kapan bus akan berangkat atau melewati halte tersebut. Selain itu, mahasiswa baru juga dapat mengalami kesulitan memahami urutan halte dan jalur bus kampus.
+
+Untuk mengatasi masalah tersebut, diperlukan sebuah web app yang dapat menampilkan jadwal bus berdasarkan halte. Dengan sistem ini, mahasiswa cukup memilih halte tempat mereka menunggu, kemudian melihat jadwal keberangkatan bus dari halte tersebut.
+
+---
 
 ## 3. Tujuan Produk
 
 Tujuan utama BusUNS adalah:
 
-1. Menyediakan informasi jadwal bus kampus secara terpusat.
-2. Memudahkan mahasiswa melihat rute dan halte yang dilewati bus.
-3. Memudahkan mahasiswa mengetahui jadwal keberangkatan berdasarkan rute.
-4. Memudahkan admin memperbarui jadwal, rute, halte, dan pengumuman operasional.
-5. Mengurangi kebingungan mahasiswa saat menunggu bus di halte.
+1. Menyediakan informasi jadwal bus kampus berbasis halte.
+2. Memudahkan mahasiswa memilih halte dan melihat jadwal keberangkatan dari halte tersebut.
+3. Menampilkan urutan halte dalam satu rute utama BusUNS.
+4. Menyediakan informasi pengumuman operasional bus.
+5. Memudahkan admin dalam mengelola halte, jadwal tiap halte, dan pengumuman.
+6. Mengurangi kebingungan mahasiswa saat menunggu bus di halte.
+7. Menjadi solusi awal yang sederhana, murah, dan realistis sebelum pengembangan fitur tracking real-time.
+
+---
 
 ## 4. Ruang Lingkup Produk
 
@@ -28,433 +44,727 @@ Tujuan utama BusUNS adalah:
 
 Fitur yang termasuk dalam tahap awal:
 
-1. Halaman informasi untuk mahasiswa.
-2. Daftar jadwal keberangkatan bus.
-3. Daftar rute bus kampus.
-4. Detail halte pada setiap rute.
-5. Fitur pencarian atau filter jadwal.
-6. Pengumuman operasional bus.
-7. Dashboard admin sederhana.
-8. Fitur tambah, edit, dan hapus jadwal oleh admin.
-9. Fitur tambah, edit, dan hapus rute/halte oleh admin.
-10. Tampilan responsive untuk desktop dan mobile.
+1. Halaman utama untuk mahasiswa.
+2. Daftar halte bus dalam bentuk card/folder.
+3. Detail jadwal keberangkatan pada setiap halte.
+4. Informasi halte berikutnya.
+5. Informasi urutan halte dalam satu rute utama.
+6. Search/filter untuk mencari halte atau jadwal.
+7. Pengumuman operasional.
+8. Dashboard admin sederhana.
+9. Fitur tambah, edit, dan hapus halte.
+10. Fitur tambah, edit, dan hapus jadwal pada setiap halte.
+11. Fitur tambah, edit, dan hapus pengumuman.
+12. Tampilan responsive untuk desktop dan mobile.
 
 ### 4.2 Tidak Termasuk dalam Scope Tahap Awal
 
-Fitur yang belum dibuat pada tahap awal:
+Fitur yang tidak dibuat pada tahap awal:
 
 1. Tracking lokasi bus secara real-time.
-2. Estimasi waktu tiba berbasis GPS.
-3. Aplikasi khusus sopir.
-4. Sensor jumlah penumpang.
-5. Notifikasi otomatis berbasis lokasi.
-6. Integrasi pembayaran.
-7. Integrasi dengan sistem akademik kampus.
+2. Live location bus.
+3. Estimasi waktu tiba berbasis GPS.
+4. Aplikasi khusus sopir.
+5. Sensor jumlah penumpang.
+6. Notifikasi otomatis berbasis lokasi.
+7. Sistem pembayaran.
+8. Integrasi dengan sistem akademik kampus.
+9. Konsep multi-rute seperti Rute A, Rute B, dan Rute C.
 
-## 5. Target Pengguna
+---
 
-### 5.1 Mahasiswa
+## 5. Konsep Utama Sistem
+
+BusUNS menggunakan konsep **jadwal berbasis halte**.
+
+Alur utama sistem:
+
+```text
+Mahasiswa membuka web
+↓
+Mahasiswa memilih halte
+↓
+Sistem menampilkan jadwal keberangkatan dari halte tersebut
+↓
+Mahasiswa melihat halte berikutnya dan informasi operasional
+```
+
+Sistem tidak menampilkan jadwal berdasarkan rute. Karena hanya ada satu rute utama, jadwal ditampilkan berdasarkan halte.
+
+### 5.1 Struktur yang Digunakan
+
+```text
+Pilih Halte
+↓
+Jadwal Halte
+↓
+Detail Keberangkatan
+```
+
+### 5.2 Struktur yang Tidak Digunakan
+
+```text
+Pilih Rute
+↓
+Jadwal Rute
+↓
+Detail Rute
+```
+
+BusUNS harus menghindari penggunaan istilah dan tampilan seperti:
+
+* Rute A
+* Rute B
+* Rute C
+* Jadwal per rute
+* Tracking bus
+* Live location
+* ETA real-time
+
+---
+
+## 6. Target Pengguna
+
+### 6.1 Mahasiswa
 
 Mahasiswa menggunakan BusUNS untuk:
 
-- Melihat jadwal keberangkatan bus.
-- Mencari rute berdasarkan halte atau tujuan.
-- Melihat daftar halte yang dilewati rute tertentu.
-- Membaca pengumuman terkait operasional bus.
+* Melihat daftar halte bus.
+* Memilih halte tempat mereka akan naik bus.
+* Melihat jadwal keberangkatan dari halte tersebut.
+* Mengetahui halte berikutnya.
+* Membaca pengumuman operasional.
+* Memahami urutan halte pada rute utama.
 
-### 5.2 Admin
+### 6.2 Admin
 
 Admin menggunakan BusUNS untuk:
 
-- Mengelola data jadwal bus.
-- Mengelola data rute.
-- Mengelola data halte.
-- Mengelola pengumuman operasional.
-- Memastikan informasi yang tampil untuk mahasiswa tetap terbaru.
+* Mengelola daftar halte.
+* Mengatur urutan halte dalam rute utama.
+* Mengelola jadwal keberangkatan pada setiap halte.
+* Mengelola pengumuman operasional.
+* Memastikan informasi yang ditampilkan kepada mahasiswa selalu terbaru.
 
-## 6. Persona Pengguna
+---
 
-### 6.1 Mahasiswa Reguler
+## 7. Persona Pengguna
 
-Mahasiswa yang setiap hari menggunakan bus kampus untuk berpindah antar fakultas. Kebutuhan utamanya adalah mengetahui jadwal dan rute bus secara cepat.
+### 7.1 Mahasiswa Reguler
 
-### 6.2 Mahasiswa Baru
+Mahasiswa yang sering menggunakan bus kampus untuk berpindah antar fakultas. Kebutuhan utamanya adalah mengetahui jadwal bus dari halte tempat ia menunggu.
 
-Mahasiswa yang belum hafal lokasi fakultas, halte, dan rute bus. Kebutuhan utamanya adalah melihat jalur rute dan urutan halte dengan jelas.
+### 7.2 Mahasiswa Baru
 
-### 6.3 Admin Transportasi Kampus
+Mahasiswa yang belum memahami lokasi halte dan urutan jalur bus kampus. Kebutuhan utamanya adalah melihat daftar halte, urutan halte, dan jadwal keberangkatan secara jelas.
 
-Pihak yang bertugas memperbarui informasi jadwal dan rute bus. Kebutuhan utamanya adalah dashboard yang mudah digunakan untuk menambah atau mengubah data.
+### 7.3 Admin Transportasi Kampus
 
-## 7. User Problem
+Pihak yang bertanggung jawab memperbarui informasi jadwal bus. Kebutuhan utamanya adalah dashboard yang mudah digunakan untuk mengatur halte, jadwal, dan pengumuman.
+
+---
+
+## 8. User Problem
 
 Masalah utama yang ingin diselesaikan:
 
-1. Mahasiswa tidak mengetahui jadwal keberangkatan bus secara pasti.
-2. Mahasiswa tidak mengetahui rute mana yang melewati fakultas atau halte tertentu.
-3. Informasi jadwal bus sulit diperbarui jika hanya berbentuk poster/manual.
-4. Mahasiswa harus bertanya atau menunggu tanpa kepastian di halte.
-5. Pengumuman perubahan jadwal tidak tersampaikan secara merata.
+1. Mahasiswa tidak mengetahui jadwal keberangkatan bus dari halte tertentu.
+2. Mahasiswa harus menunggu tanpa kepastian di halte.
+3. Informasi jadwal bus tidak tersedia secara terpusat.
+4. Mahasiswa baru belum memahami urutan halte bus kampus.
+5. Informasi perubahan jadwal sulit disampaikan secara cepat.
+6. Jadwal berbentuk manual sulit diperbarui jika terjadi perubahan.
 
-## 8. User Flow
+---
 
-### 8.1 User Flow Mahasiswa
+## 9. User Flow
+
+### 9.1 User Flow Mahasiswa
 
 1. Mahasiswa membuka web BusUNS.
-2. Mahasiswa melihat jadwal keberangkatan terdekat.
-3. Mahasiswa mencari rute, halte, atau jam keberangkatan.
-4. Sistem menampilkan jadwal yang sesuai.
-5. Mahasiswa memilih rute tertentu.
-6. Sistem menampilkan detail halte yang dilewati rute tersebut.
-7. Mahasiswa membaca pengumuman jika ada perubahan operasional.
+2. Mahasiswa melihat halaman utama.
+3. Mahasiswa melihat daftar halte dalam bentuk card/folder.
+4. Mahasiswa mencari halte melalui search bar atau memilih langsung dari daftar.
+5. Mahasiswa memilih salah satu halte.
+6. Sistem menampilkan detail jadwal keberangkatan dari halte tersebut.
+7. Sistem menampilkan halte berikutnya.
+8. Mahasiswa membaca pengumuman operasional jika tersedia.
+9. Mahasiswa dapat kembali ke daftar halte untuk memilih halte lain.
 
-### 8.2 User Flow Admin
+### 9.2 User Flow Admin
 
 1. Admin membuka halaman login.
-2. Admin masuk ke dashboard.
-3. Admin melihat ringkasan data rute, halte, jadwal, dan pengumuman.
-4. Admin menambah atau mengedit jadwal.
-5. Admin menambah atau mengedit rute dan halte.
-6. Admin menambahkan pengumuman operasional.
-7. Perubahan data tampil pada halaman mahasiswa.
+2. Admin masuk ke dashboard admin.
+3. Admin melihat ringkasan data halte, jadwal, dan pengumuman.
+4. Admin memilih menu kelola halte.
+5. Admin menambah, mengedit, atau menghapus halte.
+6. Admin memilih menu kelola jadwal.
+7. Admin memilih halte tertentu.
+8. Admin menambah, mengedit, atau menghapus jadwal untuk halte tersebut.
+9. Admin mengelola pengumuman operasional.
+10. Perubahan data tampil pada halaman mahasiswa.
 
-## 9. Fitur Utama
+---
 
-### 9.1 Halaman Mahasiswa
+## 10. Fitur Utama
 
-Halaman mahasiswa adalah halaman utama yang dapat diakses tanpa login.
+### 10.1 Halaman Mahasiswa
+
+Halaman mahasiswa adalah halaman publik yang dapat diakses tanpa login.
 
 Komponen utama:
 
-- Navbar aplikasi.
-- Search bar.
-- Card jadwal berikutnya.
-- Tabel jadwal keberangkatan.
-- Daftar rute bus.
-- Detail halte per rute.
-- Pengumuman operasional.
-- Mockup atau visualisasi rute sederhana.
+1. Navbar BusUNS.
+2. Hero section.
+3. Search bar.
+4. Daftar halte dalam bentuk card/folder.
+5. Detail jadwal halte yang dipilih.
+6. Informasi halte berikutnya.
+7. Visualisasi sederhana rute utama.
+8. Pengumuman operasional.
 
-### 9.2 Jadwal Bus
+### 10.2 Pilih Halte
 
-Sistem menampilkan daftar jadwal keberangkatan berdasarkan rute.
+Mahasiswa memilih halte terlebih dahulu sebelum melihat jadwal.
+
+Contoh tampilan:
+
+```text
+Pilih Halte Keberangkatan
+
+[Gerbang Depan] [Teknik] [FEB] [FISIP]
+[Hukum] [Gerbang Belakang] [Pasca]
+[Kedokteran] [Psikologi] [MIPA]
+[Pertanian] [Rektorat] [Gerbang Samping]
+[FKIP] [FIB] [FSRD] [Peternakan]
+```
+
+Setiap halte ditampilkan seperti folder/card yang bisa diklik.
+
+### 10.3 Jadwal Halte
+
+Setelah mahasiswa memilih halte, sistem menampilkan jadwal keberangkatan khusus dari halte tersebut.
 
 Data yang ditampilkan:
 
-- Nama rute.
-- Jam keberangkatan.
-- Halte awal.
-- Tujuan akhir.
-- Hari operasional.
-- Keterangan tambahan.
-
-### 9.3 Rute dan Halte
-
-Sistem menampilkan daftar rute beserta halte yang dilewati.
-
-Data rute awal:
-
-- **Rute A:** Gerbang Depan → Teknik → FEB → FISIP → Hukum
-- **Rute B:** Gerbang Belakang → Pasca → Kedokteran → Psikologi → MIPA → Pertanian → Rektorat
-- **Rute C:** Gerbang Samping → FKIP → FIB → FSRD → Peternakan
-
-### 9.4 Search dan Filter
-
-Mahasiswa dapat mencari jadwal berdasarkan:
-
-- Nama rute.
-- Nama halte.
-- Jam keberangkatan.
-- Tujuan.
+1. Nama halte.
+2. Jam keberangkatan.
+3. Halte berikutnya.
+4. Hari operasional.
+5. Keterangan jadwal.
 
 Contoh:
 
-- Mahasiswa mengetik “Teknik”, maka sistem menampilkan jadwal rute yang melewati Teknik.
-- Mahasiswa mengetik “Rute B”, maka sistem menampilkan jadwal Rute B.
-- Mahasiswa mengetik “06.30”, maka sistem menampilkan jadwal pada jam tersebut.
+#### Halte Gerbang Depan
 
-### 9.5 Pengumuman Operasional
+| Jam   | Halte Berikutnya | Hari        | Keterangan     |
+| ----- | ---------------- | ----------- | -------------- |
+| 06.30 | Teknik           | Senin–Jumat | Jadwal pagi    |
+| 07.00 | Teknik           | Senin–Jumat | Jadwal pagi    |
+| 09.00 | Teknik           | Senin–Jumat | Jadwal reguler |
+| 12.30 | Teknik           | Senin–Jumat | Jadwal siang   |
+| 16.00 | Teknik           | Senin–Jumat | Jadwal sore    |
 
-Admin dapat menambahkan pengumuman yang akan tampil di halaman mahasiswa.
+#### Halte Teknik
+
+| Jam   | Halte Berikutnya | Hari        | Keterangan     |
+| ----- | ---------------- | ----------- | -------------- |
+| 06.40 | FEB              | Senin–Jumat | Jadwal pagi    |
+| 07.10 | FEB              | Senin–Jumat | Jadwal pagi    |
+| 09.10 | FEB              | Senin–Jumat | Jadwal reguler |
+| 12.40 | FEB              | Senin–Jumat | Jadwal siang   |
+| 16.10 | FEB              | Senin–Jumat | Jadwal sore    |
+
+### 10.4 Rute Utama BusUNS
+
+BusUNS hanya memiliki satu rute utama.
+
+Urutan halte rute utama:
+
+```text
+Gerbang Depan
+↓
+Teknik
+↓
+FEB
+↓
+FISIP
+↓
+Hukum
+↓
+Gerbang Belakang
+↓
+Pasca
+↓
+Kedokteran
+↓
+Psikologi
+↓
+MIPA
+↓
+Pertanian
+↓
+Rektorat
+↓
+Gerbang Samping
+↓
+FKIP
+↓
+FIB
+↓
+FSRD
+↓
+Peternakan
+```
+
+Catatan: urutan halte dapat disesuaikan kembali berdasarkan hasil pendataan lapangan.
+
+### 10.5 Search dan Filter
+
+Search digunakan untuk mencari halte atau jadwal.
+
+Mahasiswa dapat mencari berdasarkan:
+
+1. Nama halte.
+2. Nama fakultas.
+3. Jam keberangkatan.
+4. Halte berikutnya.
+
+Contoh:
+
+* Jika mahasiswa mengetik “Teknik”, sistem menampilkan halte Teknik dan jadwal yang berkaitan.
+* Jika mahasiswa mengetik “06.30”, sistem menampilkan jadwal yang memiliki jam 06.30.
+* Jika mahasiswa mengetik “FEB”, sistem menampilkan halte FEB atau jadwal yang menuju FEB.
+
+### 10.6 Pengumuman Operasional
+
+Pengumuman digunakan untuk menyampaikan informasi penting kepada mahasiswa.
 
 Contoh pengumuman:
 
-- “Jadwal bus dapat berubah saat hujan deras.”
-- “Rute B tidak beroperasi sementara karena kegiatan kampus.”
-- “Mulai Senin, jadwal keberangkatan pagi dimulai pukul 06.30.”
+* “Jadwal dapat berubah saat hujan deras.”
+* “Bus tidak beroperasi pada hari libur nasional.”
+* “Jadwal sore dimulai pukul 16.00.”
+* “Halte tertentu tidak digunakan sementara karena kegiatan kampus.”
 
-### 9.6 Dashboard Admin
+### 10.7 Dashboard Admin
 
-Dashboard admin digunakan untuk mengelola data yang tampil di halaman mahasiswa.
+Dashboard admin digunakan untuk mengelola data sistem.
 
 Komponen utama:
 
-- Ringkasan jumlah rute.
-- Ringkasan jumlah halte.
-- Ringkasan jumlah jadwal.
-- Ringkasan jumlah pengumuman aktif.
-- Tabel jadwal.
-- Form tambah/edit jadwal.
-- Form tambah/edit rute.
-- Form tambah/edit pengumuman.
+1. Ringkasan jumlah halte.
+2. Ringkasan jumlah jadwal.
+3. Ringkasan pengumuman aktif.
+4. Menu kelola halte.
+5. Menu kelola jadwal per halte.
+6. Menu kelola pengumuman.
 
-## 10. Kebutuhan Data
+---
 
-### 10.1 Data Rute
+## 11. Kebutuhan Data
+
+### 11.1 Data Halte
 
 Contoh struktur data:
 
 ```json
 {
-  "id": "route_a",
-  "name": "Rute A",
-  "stops": ["Gerbang Depan", "Teknik", "FEB", "FISIP", "Hukum"],
+  "id": "halte_gerbang_depan",
+  "name": "Gerbang Depan",
+  "order": 1,
+  "nextStopId": "halte_teknik",
   "status": "active"
 }
 ```
 
-### 10.2 Data Jadwal
+### 11.2 Data Jadwal Halte
 
 Contoh struktur data:
 
 ```json
 {
   "id": "schedule_001",
-  "routeId": "route_a",
+  "stopId": "halte_gerbang_depan",
   "time": "06.30",
-  "from": "Gerbang Depan",
-  "to": "Hukum",
+  "nextStop": "Teknik",
   "days": "Senin–Jumat",
   "note": "Jadwal pagi",
   "status": "active"
 }
 ```
 
-### 10.3 Data Pengumuman
+### 11.3 Data Rute Utama
+
+Contoh struktur data:
+
+```json
+{
+  "id": "main_route",
+  "name": "Rute Utama BusUNS",
+  "stops": [
+    "Gerbang Depan",
+    "Teknik",
+    "FEB",
+    "FISIP",
+    "Hukum",
+    "Gerbang Belakang",
+    "Pasca",
+    "Kedokteran",
+    "Psikologi",
+    "MIPA",
+    "Pertanian",
+    "Rektorat",
+    "Gerbang Samping",
+    "FKIP",
+    "FIB",
+    "FSRD",
+    "Peternakan"
+  ],
+  "status": "active"
+}
+```
+
+### 11.4 Data Pengumuman
 
 Contoh struktur data:
 
 ```json
 {
   "id": "announcement_001",
-  "title": "Perubahan Jadwal",
-  "content": "Jadwal dapat berubah saat kegiatan kampus besar.",
+  "title": "Informasi Operasional",
+  "content": "Jadwal bus dapat berubah saat kegiatan kampus besar.",
   "status": "active",
-  "createdAt": "2026-05-28"
+  "createdAt": "2026-05-29"
 }
 ```
 
-## 11. Kebutuhan Halaman
+---
 
-### 11.1 Halaman Mahasiswa
+## 12. Kebutuhan Halaman
 
-URL contoh: `/`
+### 12.1 Halaman Mahasiswa
+
+URL contoh:
+
+```text
+/
+```
 
 Isi halaman:
 
 1. Header.
 2. Hero section.
-3. Search/filter jadwal.
-4. Jadwal berikutnya.
-5. Tabel jadwal.
-6. Daftar rute.
-7. Detail halte.
-8. Pengumuman.
+3. Search bar.
+4. Daftar halte.
+5. Detail jadwal halte yang dipilih.
+6. Informasi halte berikutnya.
+7. Visualisasi rute utama.
+8. Pengumuman operasional.
 
-### 11.2 Halaman Admin
+### 12.2 Halaman Detail Halte
 
-URL contoh: `/admin`
+URL contoh:
+
+```text
+/halte/gerbang-depan
+```
+
+Isi halaman:
+
+1. Nama halte.
+2. Daftar jadwal keberangkatan dari halte.
+3. Halte berikutnya.
+4. Hari operasional.
+5. Keterangan.
+6. Tombol kembali ke daftar halte.
+
+### 12.3 Halaman Admin
+
+URL contoh:
+
+```text
+/admin
+```
 
 Isi halaman:
 
 1. Login admin.
 2. Dashboard ringkasan.
-3. Tabel jadwal.
-4. Form tambah/edit jadwal.
-5. Tabel rute dan halte.
-6. Form tambah/edit rute.
-7. Tabel pengumuman.
-8. Form tambah/edit pengumuman.
+3. Menu kelola halte.
+4. Menu kelola jadwal.
+5. Menu kelola pengumuman.
 
-## 12. Kebutuhan Non-Fungsional
+### 12.4 Halaman Admin Kelola Halte
 
-1. Web harus responsive di laptop dan smartphone.
-2. Informasi jadwal harus mudah dibaca.
-3. Navigasi harus sederhana.
-4. Data jadwal harus bisa diperbarui oleh admin.
-5. Halaman mahasiswa dapat diakses tanpa login.
-6. Halaman admin harus dilindungi login.
+URL contoh:
+
+```text
+/admin/halte
+```
+
+Isi halaman:
+
+1. Tabel daftar halte.
+2. Urutan halte.
+3. Halte berikutnya.
+4. Status halte.
+5. Tombol tambah halte.
+6. Tombol edit halte.
+7. Tombol hapus halte.
+
+### 12.5 Halaman Admin Kelola Jadwal
+
+URL contoh:
+
+```text
+/admin/jadwal
+```
+
+Isi halaman:
+
+1. Pilihan halte.
+2. Tabel jadwal berdasarkan halte yang dipilih.
+3. Tombol tambah jadwal.
+4. Tombol edit jadwal.
+5. Tombol hapus jadwal.
+
+### 12.6 Halaman Admin Kelola Pengumuman
+
+URL contoh:
+
+```text
+/admin/pengumuman
+```
+
+Isi halaman:
+
+1. Daftar pengumuman.
+2. Status aktif/nonaktif.
+3. Tombol tambah pengumuman.
+4. Tombol edit pengumuman.
+5. Tombol hapus pengumuman.
+
+---
+
+## 13. Kebutuhan Non-Fungsional
+
+1. Web harus responsive di desktop dan mobile.
+2. Halaman mahasiswa dapat diakses tanpa login.
+3. Halaman admin harus dilindungi login.
+4. Informasi jadwal harus mudah dibaca.
+5. Daftar halte harus mudah dipilih.
+6. Sistem harus tetap berjalan tanpa fitur GPS.
 7. Tampilan harus ringan dan tidak membingungkan.
-8. Sistem tahap awal harus tetap bisa berjalan tanpa GPS.
+8. Data jadwal harus dapat diperbarui admin.
+9. Sistem harus menggunakan struktur data yang mudah dihubungkan ke backend.
+10. Website sebaiknya dapat diakses melalui QR code yang ditempel di halte.
 
-## 13. Prioritas Fitur
+---
 
-### 13.1 Prioritas Tinggi
+## 14. Prioritas Fitur
+
+### 14.1 Prioritas Tinggi
 
 1. Halaman mahasiswa.
-2. Tabel jadwal bus.
-3. Daftar rute dan halte.
-4. Search/filter jadwal.
-5. Pengumuman operasional.
-6. Tampilan responsive.
+2. Daftar halte.
+3. Detail jadwal per halte.
+4. Search/filter halte dan jadwal.
+5. Informasi halte berikutnya.
+6. Pengumuman operasional.
+7. Tampilan responsive.
 
-### 13.2 Prioritas Sedang
+### 14.2 Prioritas Sedang
 
 1. Dashboard admin.
-2. Tambah/edit/hapus jadwal.
-3. Tambah/edit/hapus rute.
+2. Tambah/edit/hapus halte.
+3. Tambah/edit/hapus jadwal per halte.
 4. Tambah/edit/hapus pengumuman.
 5. Login admin.
 
-### 13.3 Prioritas Rendah
+### 14.3 Prioritas Rendah
 
 1. QR code per halte.
 2. Export jadwal.
 3. Riwayat perubahan jadwal.
 4. Notifikasi pengingat jadwal.
+5. Estimasi durasi antarshalte secara statis.
 
-## 14. MVP
+---
+
+## 15. MVP
 
 MVP atau versi awal BusUNS harus memiliki:
 
-1. Halaman mahasiswa yang menampilkan jadwal bus.
-2. Daftar rute A, B, dan C.
-3. Detail halte pada setiap rute.
-4. Search/filter jadwal.
-5. Pengumuman operasional.
-6. Halaman admin sederhana untuk mengelola jadwal.
-7. Data dummy atau database sederhana.
-8. Tampilan responsive.
+1. Halaman mahasiswa.
+2. Daftar halte dalam bentuk card/folder.
+3. Detail jadwal untuk halte yang dipilih.
+4. Search/filter halte.
+5. Search/filter jadwal.
+6. Informasi halte berikutnya.
+7. Pengumuman operasional.
+8. Halaman admin sederhana.
+9. Fitur kelola jadwal per halte.
+10. Tampilan responsive.
+11. Data dummy atau database sederhana.
 
-## 15. Acceptance Criteria
+---
+
+## 16. Acceptance Criteria
 
 Produk dianggap berhasil pada tahap awal jika:
 
-1. Mahasiswa dapat membuka web tanpa login.
-2. Mahasiswa dapat melihat daftar jadwal bus.
-3. Mahasiswa dapat mencari jadwal berdasarkan rute, halte, atau jam.
-4. Mahasiswa dapat melihat detail halte pada setiap rute.
-5. Mahasiswa dapat membaca pengumuman operasional.
-6. Admin dapat menambah, mengedit, dan menghapus jadwal.
-7. Admin dapat mengubah pengumuman operasional.
-8. Tampilan dapat digunakan dengan baik di desktop dan mobile.
-9. Sistem tetap berjalan tanpa fitur tracking GPS.
+1. Mahasiswa dapat membuka web BusUNS tanpa login.
+2. Mahasiswa dapat melihat daftar halte.
+3. Mahasiswa dapat memilih salah satu halte.
+4. Sistem menampilkan jadwal keberangkatan khusus dari halte yang dipilih.
+5. Mahasiswa dapat mencari halte berdasarkan nama halte atau fakultas.
+6. Mahasiswa dapat mencari jadwal berdasarkan jam atau halte berikutnya.
+7. Mahasiswa dapat melihat informasi halte berikutnya.
+8. Mahasiswa dapat membaca pengumuman operasional.
+9. Admin dapat menambah, mengedit, dan menghapus halte.
+10. Admin dapat menambah, mengedit, dan menghapus jadwal pada setiap halte.
+11. Admin dapat mengelola pengumuman.
+12. Sistem tidak menampilkan konsep multi-rute seperti Rute A, Rute B, atau Rute C.
+13. Sistem tidak menampilkan fitur tracking GPS atau live location.
+14. Tampilan dapat digunakan dengan baik di desktop dan mobile.
 
-## 16. Pembagian Tugas Tim
+---
 
-### 16.1 UI/UX Designer
+## 17. Pembagian Tugas Tim
 
-Tugas:
-
-- Membuat desain halaman mahasiswa.
-- Membuat desain halaman admin.
-- Menentukan warna, layout, typography, dan komponen UI.
-- Membuat prototype alur penggunaan.
-
-### 16.2 Frontend Developer 1
+### 17.1 UI/UX Designer
 
 Tugas:
 
-- Membuat halaman mahasiswa.
-- Membuat tabel jadwal.
-- Membuat search/filter jadwal.
-- Membuat tampilan daftar rute dan detail halte.
+1. Membuat desain halaman mahasiswa.
+2. Membuat desain card/folder halte.
+3. Membuat desain halaman detail jadwal halte.
+4. Membuat desain dashboard admin.
+5. Menentukan warna, layout, typography, dan komponen UI.
 
-### 16.3 Frontend Developer 2
-
-Tugas:
-
-- Membuat halaman admin.
-- Membuat form tambah/edit jadwal.
-- Membuat form tambah/edit rute dan pengumuman.
-- Membantu responsive design.
-
-### 16.4 Backend Developer
+### 17.2 Frontend Developer 1
 
 Tugas:
 
-- Menentukan struktur database.
-- Membuat koneksi database.
-- Membuat autentikasi admin.
-- Menyediakan data jadwal, rute, halte, dan pengumuman.
+1. Membuat halaman mahasiswa.
+2. Membuat komponen daftar halte.
+3. Membuat komponen detail jadwal halte.
+4. Membuat search/filter halte.
+5. Membuat tampilan responsive halaman mahasiswa.
 
-### 16.5 Bug Tester
-
-Tugas:
-
-- Menguji fitur search/filter.
-- Menguji tambah/edit/hapus data.
-- Menguji tampilan mobile dan desktop.
-- Mencatat bug dan hasil pengujian.
-
-### 16.6 Dokumentasi
+### 17.3 Frontend Developer 2
 
 Tugas:
 
-- Menulis latar belakang.
-- Menulis tujuan sistem.
-- Menulis analisis kebutuhan.
-- Menulis dokumentasi fitur.
-- Menyusun screenshot hasil sistem.
+1. Membuat halaman admin.
+2. Membuat tabel kelola halte.
+3. Membuat tabel kelola jadwal per halte.
+4. Membuat form tambah/edit jadwal.
+5. Membuat form tambah/edit pengumuman.
 
-### 16.7 Tim Lapangan 1
-
-Tugas:
-
-- Mendata titik halte.
-- Memastikan nama halte sesuai dengan kondisi kampus.
-- Mengambil foto halte jika diperlukan.
-
-### 16.8 Tim Lapangan 2
+### 17.4 Backend Developer
 
 Tugas:
 
-- Membantu pendataan halte.
-- Membantu pemasangan QR code jika fitur QR digunakan.
-- Menguji apakah QR dapat dibuka dengan baik.
+1. Menentukan struktur database.
+2. Membuat koneksi database.
+3. Membuat autentikasi admin.
+4. Menyediakan data halte.
+5. Menyediakan data jadwal per halte.
+6. Menyediakan data pengumuman.
 
-## 17. Risiko dan Batasan
+### 17.5 Bug Tester
 
-| Risiko | Dampak | Solusi |
-|---|---|---|
-| Jadwal bus berubah-ubah | Informasi bisa tidak akurat | Admin harus mudah memperbarui jadwal |
-| Data halte belum lengkap | Rute sulit dipahami | Tim lapangan melakukan pendataan |
-| Mahasiswa tidak tahu web tersedia | Web jarang digunakan | Tempel QR code di halte dan publikasi |
-| Admin lupa update data | Informasi menjadi usang | Buat pengingat dan dokumentasi admin |
-| Tampilan terlalu rumit | Mahasiswa sulit menggunakan | Buat UI sederhana dan mobile-friendly |
+Tugas:
 
-## 18. Teknologi yang Disarankan
+1. Menguji pemilihan halte.
+2. Menguji tampilan jadwal per halte.
+3. Menguji search/filter.
+4. Menguji tambah/edit/hapus data.
+5. Menguji tampilan mobile dan desktop.
+6. Mencatat bug dan hasil pengujian.
 
-### 18.1 Frontend
+### 17.6 Dokumentasi
 
-- Next.js
-- Tailwind CSS
-- Lucide React untuk ikon
-- Shadcn/UI jika ingin komponen UI yang lebih rapi
+Tugas:
 
-### 18.2 Struktur Frontend yang Disarankan
+1. Menulis latar belakang.
+2. Menulis tujuan sistem.
+3. Menulis analisis kebutuhan.
+4. Menulis dokumentasi fitur.
+5. Menyusun screenshot hasil sistem.
+6. Menyusun panduan penggunaan.
 
-Struktur halaman Next.js yang disarankan:
+### 17.7 Tim Lapangan 1
+
+Tugas:
+
+1. Mendata halte.
+2. Memastikan nama halte sesuai kondisi kampus.
+3. Memastikan urutan halte dalam rute utama.
+4. Mengambil foto halte jika diperlukan.
+
+### 17.8 Tim Lapangan 2
+
+Tugas:
+
+1. Membantu pendataan halte.
+2. Membantu validasi urutan halte.
+3. Membantu pemasangan QR code jika fitur QR digunakan.
+4. Menguji apakah QR dapat dibuka dengan baik.
+
+---
+
+## 18. Risiko dan Batasan
+
+| Risiko                              | Dampak                          | Solusi                                        |
+| ----------------------------------- | ------------------------------- | --------------------------------------------- |
+| Jadwal bus berubah-ubah             | Informasi bisa tidak akurat     | Admin harus mudah memperbarui jadwal          |
+| Urutan halte belum valid            | Informasi rute membingungkan    | Tim lapangan melakukan validasi               |
+| Data jadwal per halte belum lengkap | Jadwal tidak membantu mahasiswa | Buat data awal berdasarkan observasi          |
+| Mahasiswa tidak tahu web tersedia   | Web jarang digunakan            | Tempel QR code di halte                       |
+| Admin lupa update data              | Informasi menjadi usang         | Buat dokumentasi penggunaan admin             |
+| UI terlalu rumit                    | Mahasiswa sulit menggunakan     | Gunakan desain sederhana berbasis card/folder |
+
+---
+
+## 19. Teknologi yang Disarankan
+
+### 19.1 Frontend
+
+1. Next.js.
+2. Tailwind CSS.
+3. Lucide React untuk ikon.
+4. Shadcn/UI jika ingin komponen UI lebih rapi.
+
+### 19.2 Struktur Frontend yang Disarankan
 
 ```text
 app/
-├── page.jsx                  # Halaman mahasiswa
+├── page.jsx
+├── halte/
+│   └── [slug]/page.jsx
 ├── admin/
-│   ├── page.jsx              # Dashboard admin
-│   ├── jadwal/page.jsx       # Kelola jadwal
-│   ├── rute/page.jsx         # Kelola rute dan halte
-│   └── pengumuman/page.jsx   # Kelola pengumuman
+│   ├── page.jsx
+│   ├── halte/page.jsx
+│   ├── jadwal/page.jsx
+│   └── pengumuman/page.jsx
 ├── layout.jsx
 └── globals.css
 
 components/
 ├── Navbar.jsx
-├── ScheduleTable.jsx
-├── RouteCard.jsx
-├── RouteDetail.jsx
+├── StopFolderGrid.jsx
+├── StopCard.jsx
+├── StopScheduleDetail.jsx
+├── StopScheduleTable.jsx
+├── MainRouteMap.jsx
 ├── AnnouncementCard.jsx
 ├── AdminSidebar.jsx
-└── ScheduleForm.jsx
+├── StopForm.jsx
+├── ScheduleForm.jsx
+└── AnnouncementForm.jsx
 
 data/
 └── dummyData.js
@@ -462,58 +772,101 @@ data/
 
 Pada tahap frontend awal, data dapat disimpan di `dummyData.js`. Setelah backend siap, data dummy dapat diganti dengan data dari database.
 
-### 18.3 Backend/Database
+### 19.3 Backend/Database
 
-- Firebase Firestore atau Supabase
-- Firebase Auth atau Supabase Auth untuk login admin
+1. Firebase Firestore atau Supabase.
+2. Firebase Auth atau Supabase Auth untuk login admin.
 
-### 18.4 Hosting
+### 19.4 Hosting
 
-- Vercel
-- Netlify
-- Firebase Hosting
+1. Vercel.
+2. Netlify.
+3. Firebase Hosting.
 
-## 19. Roadmap Pengerjaan
+---
+
+## 20. Roadmap Pengerjaan
 
 ### Tahap 1 — Perancangan
 
-- Finalisasi PRD.
-- Finalisasi data rute dan halte.
-- Membuat wireframe UI.
-- Membagi tugas tim.
+1. Finalisasi PRD.
+2. Finalisasi daftar halte.
+3. Finalisasi urutan halte.
+4. Membuat wireframe UI.
+5. Membagi tugas tim.
 
 ### Tahap 2 — Frontend Dummy
 
-- Membuat halaman mahasiswa.
-- Membuat halaman admin.
-- Menggunakan data dummy.
-- Membuat search/filter.
-- Membuat form tambah/edit sementara.
+1. Membuat halaman mahasiswa.
+2. Membuat daftar halte berbentuk card/folder.
+3. Membuat halaman detail jadwal halte.
+4. Membuat search/filter.
+5. Membuat halaman admin.
+6. Menggunakan data dummy.
 
 ### Tahap 3 — Backend dan Database
 
-- Membuat struktur database.
-- Membuat login admin.
-- Menghubungkan data jadwal ke database.
-- Menghubungkan data rute dan pengumuman ke database.
+1. Membuat struktur database halte.
+2. Membuat struktur database jadwal per halte.
+3. Membuat struktur database pengumuman.
+4. Membuat login admin.
+5. Menghubungkan data ke frontend.
 
 ### Tahap 4 — Integrasi dan Testing
 
-- Menguji semua fitur.
-- Memperbaiki bug.
-- Menguji tampilan mobile.
-- Menyiapkan dokumentasi akhir.
+1. Menguji pemilihan halte.
+2. Menguji jadwal per halte.
+3. Menguji search/filter.
+4. Menguji fitur admin.
+5. Menguji tampilan mobile.
+6. Memperbaiki bug.
 
 ### Tahap 5 — Demo dan Presentasi
 
-- Menyiapkan data contoh.
-- Menyiapkan skenario demo.
-- Menyiapkan laporan.
-- Menyiapkan slide presentasi jika diperlukan.
+1. Menyiapkan data contoh.
+2. Menyiapkan skenario demo.
+3. Menyiapkan laporan.
+4. Menyiapkan slide presentasi jika diperlukan.
+5. Menyiapkan QR dummy jika diperlukan.
 
-## 20. Catatan Penting
+---
 
-BusUNS tahap awal tidak bertujuan menggantikan sistem monitoring real-time. Produk ini dibuat sebagai solusi awal yang lebih sederhana, murah, dan realistis untuk membantu mahasiswa mengakses informasi jadwal dan rute bus kampus.
+## 21. Catatan Penting untuk Developer dan AI Coding
 
-Fitur tracking GPS dapat dipertimbangkan pada pengembangan berikutnya jika tersedia anggaran, perangkat, dan kesiapan sistem yang memadai.
+BusUNS hanya memiliki **satu rute utama**.
 
+Jangan membuat sistem multi-rute seperti:
+
+* Rute A
+* Rute B
+* Rute C
+
+Jangan membuat jadwal langsung berdasarkan rute.
+
+Alur yang benar adalah:
+
+```text
+Pilih Halte
+↓
+Tampilkan Jadwal Halte
+```
+
+Gunakan istilah:
+
+* Pilih Halte
+* Jadwal Halte
+* Halte Berikutnya
+* Rute Utama BusUNS
+* Jadwal Keberangkatan dari Halte
+
+Hindari istilah:
+
+* Rute A
+* Rute B
+* Rute C
+* Jadwal per rute
+* Tracking bus
+* Live location
+* ETA real-time
+
+Frontend harus mengutamakan card/folder halte sebagai pintu masuk utama sebelum pengguna melihat jadwal.

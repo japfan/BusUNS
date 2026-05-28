@@ -2,28 +2,29 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Bus, LogIn, Megaphone, Route, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Bus, LogIn, MapPin, Megaphone, Save, Trash2 } from "lucide-react";
 import AnnouncementCard from "@/components/AnnouncementCard";
-import RouteCard from "@/components/RouteCard";
 import ScheduleTable from "@/components/ScheduleTable";
+import StopCard from "@/components/StopCard";
 import { useBusData } from "@/components/useBusData";
 
 const blankSchedule = {
   id: "",
-  routeId: "route_a",
+  stopId: "",
+  nextStopId: "",
   time: "06.30",
-  from: "",
-  to: "",
   days: "Senin-Jumat",
   note: "",
   status: "active",
 };
 
-const blankRoute = {
+const blankStop = {
   id: "",
   name: "",
-  color: "#0f766e",
-  stops: "",
+  area: "",
+  order: 1,
+  x: 50,
+  y: 50,
   status: "active",
 };
 
@@ -32,30 +33,33 @@ const blankAnnouncement = {
   title: "",
   content: "",
   status: "active",
-  createdAt: "2026-05-28",
+  createdAt: "2026-05-29",
 };
 
 export default function AdminPage() {
-  const {
-    routes,
-    schedules,
-    announcements,
-    routeMap,
-    setRoutes,
-    setSchedules,
-    setAnnouncements,
-  } = useBusData();
+  const { stops, schedules, announcements, stopMap, setStops, setSchedules, setAnnouncements } = useBusData();
   const [loggedIn, setLoggedIn] = useState(false);
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [scheduleForm, setScheduleForm] = useState(blankSchedule);
-  const [routeForm, setRouteForm] = useState(blankRoute);
+  const [stopForm, setStopForm] = useState(blankStop);
   const [announcementForm, setAnnouncementForm] = useState(blankAnnouncement);
+  const [selectedManageStopId, setSelectedManageStopId] = useState("");
   const [error, setError] = useState("");
 
-  const totalStops = useMemo(
-    () => routes.reduce((total, route) => total + route.stops.length, 0),
-    [routes],
+  const sortedStops = useMemo(
+    () => stops.slice().sort((a, b) => Number(a.order) - Number(b.order)),
+    [stops],
   );
+  const manageStop = stopMap[selectedManageStopId] ?? sortedStops[0];
+  const manageSchedules = schedules
+    .filter((schedule) => schedule.stopId === manageStop?.id)
+    .sort((a, b) => a.time.localeCompare(b.time));
+  const activeAnnouncements = announcements.filter((item) => item.status === "active");
+
+  function defaultNextStopId(stopId) {
+    const index = sortedStops.findIndex((stop) => stop.id === stopId);
+    return sortedStops[index + 1]?.id ?? sortedStops[0]?.id ?? "";
+  }
 
   function handleLogin(event) {
     event.preventDefault();
@@ -69,30 +73,39 @@ export default function AdminPage() {
 
   function saveSchedule(event) {
     event.preventDefault();
+    const stopId = scheduleForm.stopId || manageStop?.id || sortedStops[0]?.id || "";
     const id = scheduleForm.id || `schedule_${Date.now()}`;
-    const payload = { ...scheduleForm, id };
+    const payload = {
+      ...scheduleForm,
+      id,
+      stopId,
+      nextStopId: scheduleForm.nextStopId || defaultNextStopId(stopId),
+    };
     setSchedules((items) =>
       items.some((item) => item.id === id)
         ? items.map((item) => (item.id === id ? payload : item))
         : [payload, ...items],
     );
-    setScheduleForm({ ...blankSchedule, routeId: routes[0]?.id ?? "route_a" });
+    setSelectedManageStopId(stopId);
+    setScheduleForm({ ...blankSchedule, stopId, nextStopId: defaultNextStopId(stopId) });
   }
 
-  function saveRoute(event) {
+  function saveStop(event) {
     event.preventDefault();
-    const id = routeForm.id || routeForm.name.toLowerCase().replaceAll(" ", "_") || `route_${Date.now()}`;
+    const id = stopForm.id || stopForm.name.toLowerCase().replaceAll(" ", "_");
     const payload = {
-      ...routeForm,
+      ...stopForm,
       id,
-      stops: routeForm.stops.split(",").map((stop) => stop.trim()).filter(Boolean),
+      order: Number(stopForm.order) || sortedStops.length + 1,
+      x: Number(stopForm.x) || 50,
+      y: Number(stopForm.y) || 50,
     };
-    setRoutes((items) =>
+    setStops((items) =>
       items.some((item) => item.id === id)
         ? items.map((item) => (item.id === id ? payload : item))
         : [payload, ...items],
     );
-    setRouteForm(blankRoute);
+    setStopForm({ ...blankStop, order: sortedStops.length + 2 });
   }
 
   function saveAnnouncement(event) {
@@ -107,38 +120,33 @@ export default function AdminPage() {
     setAnnouncementForm(blankAnnouncement);
   }
 
+  function getScheduleCount(stopId) {
+    return schedules.filter((schedule) => schedule.status === "active" && schedule.stopId === stopId).length;
+  }
+
   if (!loggedIn) {
     return (
-      <main className="admin-login-page">
-        <Link className="back-link" href="/">
+      <main className="grid min-h-screen place-items-center bg-slate-50 p-6">
+        <Link className="fixed left-5 top-5 inline-flex items-center gap-2 font-bold text-slate-500" href="/">
           <ArrowLeft size={18} aria-hidden="true" />
-          Kembali ke halaman mahasiswa
+          Kembali
         </Link>
-        <form className="login-panel" onSubmit={handleLogin}>
-          <div className="brand-mark">
+        <form className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl" onSubmit={handleLogin}>
+          <div className="grid size-12 place-items-center rounded-xl bg-blue-700 text-white">
             <Bus size={24} aria-hidden="true" />
           </div>
-          <h1>Login Admin BusUNS</h1>
-          <p>Gunakan akun demo untuk mengelola jadwal, rute, halte, dan pengumuman.</p>
-          <label>
+          <h1 className="mt-5 text-3xl font-black text-slate-950">Login Admin BusUNS</h1>
+          <p className="mt-2 leading-6 text-slate-600">Kelola halte, jadwal berbasis halte, dan pengumuman operasional.</p>
+          <label className="mt-5 block font-bold text-slate-600">
             Username
-            <input
-              value={credentials.username}
-              onChange={(event) => setCredentials({ ...credentials, username: event.target.value })}
-              placeholder="admin"
-            />
+            <input className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500" value={credentials.username} onChange={(event) => setCredentials({ ...credentials, username: event.target.value })} placeholder="admin" />
           </label>
-          <label>
+          <label className="mt-4 block font-bold text-slate-600">
             Password
-            <input
-              type="password"
-              value={credentials.password}
-              onChange={(event) => setCredentials({ ...credentials, password: event.target.value })}
-              placeholder="admin123"
-            />
+            <input className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500" type="password" value={credentials.password} onChange={(event) => setCredentials({ ...credentials, password: event.target.value })} placeholder="admin123" />
           </label>
-          {error ? <div className="form-error">{error}</div> : null}
-          <button className="primary-button full" type="submit">
+          {error ? <p className="mt-3 font-bold text-red-700">{error}</p> : null}
+          <button className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3 font-black text-white" type="submit">
             <LogIn size={18} aria-hidden="true" />
             Masuk dashboard
           </button>
@@ -148,116 +156,93 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="admin-page">
-      <aside className="admin-sidebar">
-        <Link className="brand" href="/">
-          <span className="brand-mark">
-            <Bus size={20} aria-hidden="true" />
-          </span>
-          <span>BusUNS Admin</span>
+    <main className="min-h-screen bg-slate-50 lg:grid lg:grid-cols-[260px_1fr]">
+      <aside className="sticky top-0 z-30 flex gap-2 border-b border-slate-200 bg-white p-4 lg:h-screen lg:flex-col lg:border-b-0 lg:border-r">
+        <Link className="mb-2 flex items-center gap-3 font-black text-slate-950" href="/">
+          <span className="grid size-10 place-items-center rounded-lg bg-blue-700 text-white"><Bus size={20} /></span>
+          BusUNS Admin
         </Link>
-        <a href="#jadwal">Kelola Jadwal</a>
-        <a href="#rute">Kelola Rute</a>
-        <a href="#pengumuman">Kelola Pengumuman</a>
-        <Link href="/">Halaman Mahasiswa</Link>
+        <a className="rounded-lg px-3 py-2 font-bold text-slate-600 hover:bg-slate-100" href="#jadwal">Kelola Jadwal</a>
+        <a className="rounded-lg px-3 py-2 font-bold text-slate-600 hover:bg-slate-100" href="#halte">Kelola Halte</a>
+        <a className="rounded-lg px-3 py-2 font-bold text-slate-600 hover:bg-slate-100" href="#pengumuman">Pengumuman</a>
+        <Link className="rounded-lg px-3 py-2 font-bold text-slate-600 hover:bg-slate-100" href="/">Halaman Mahasiswa</Link>
       </aside>
 
-      <section className="admin-main">
-        <div className="admin-topbar">
+      <section className="mx-auto w-[min(1080px,calc(100%-32px))] py-8">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="eyebrow">Dashboard Admin</p>
-            <h1>Kelola Informasi BusUNS</h1>
+            <p className="text-sm font-black uppercase tracking-wide text-blue-700">Dashboard Admin</p>
+            <h1 className="mt-1 text-4xl font-black text-slate-950">Kelola Peta dan Jadwal Halte</h1>
           </div>
-          <button className="secondary-button" type="button" onClick={() => setLoggedIn(false)}>
+          <button className="rounded-xl border border-slate-200 bg-white px-4 py-3 font-black text-slate-700" type="button" onClick={() => setLoggedIn(false)}>
             Keluar
           </button>
         </div>
 
-        <div className="stat-grid">
-          <Stat icon={<Route size={18} />} label="Rute" value={routes.length} />
-          <Stat icon={<Bus size={18} />} label="Halte" value={totalStops} />
+        <div className="mt-6 grid gap-4 md:grid-cols-4">
+          <Stat icon={<Bus size={18} />} label="Rute Utama" value="1" />
+          <Stat icon={<MapPin size={18} />} label="Halte" value={stops.length} />
           <Stat icon={<Save size={18} />} label="Jadwal" value={schedules.length} />
-          <Stat icon={<Megaphone size={18} />} label="Pengumuman" value={announcements.length} />
+          <Stat icon={<Megaphone size={18} />} label="Pengumuman Aktif" value={activeAnnouncements.length} />
         </div>
 
-        <section className="admin-section" id="jadwal">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Jadwal</p>
-              <h2>Tambah dan edit jadwal</h2>
-            </div>
-          </div>
-          <form className="admin-form" onSubmit={saveSchedule}>
-            <select
-              value={scheduleForm.routeId}
-              onChange={(event) => setScheduleForm({ ...scheduleForm, routeId: event.target.value })}
-            >
-              {routes.map((route) => (
-                <option key={route.id} value={route.id}>{route.name}</option>
-              ))}
+        <section className="mt-10" id="jadwal">
+          <SectionTitle eyebrow="Jadwal" title="Kelola jadwal berdasarkan halte" />
+          <div className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_auto]">
+            <select className="rounded-xl border border-slate-200 px-4 py-3 font-bold outline-none focus:border-blue-500" value={manageStop?.id ?? ""} onChange={(event) => {
+              setSelectedManageStopId(event.target.value);
+              setScheduleForm({ ...blankSchedule, stopId: event.target.value, nextStopId: defaultNextStopId(event.target.value) });
+            }}>
+              {sortedStops.map((stop) => <option key={stop.id} value={stop.id}>{stop.name}</option>)}
             </select>
-            <input value={scheduleForm.time} onChange={(event) => setScheduleForm({ ...scheduleForm, time: event.target.value })} placeholder="Jam" />
-            <input value={scheduleForm.from} onChange={(event) => setScheduleForm({ ...scheduleForm, from: event.target.value })} placeholder="Halte awal" />
-            <input value={scheduleForm.to} onChange={(event) => setScheduleForm({ ...scheduleForm, to: event.target.value })} placeholder="Tujuan akhir" />
-            <input value={scheduleForm.days} onChange={(event) => setScheduleForm({ ...scheduleForm, days: event.target.value })} placeholder="Hari operasional" />
-            <input value={scheduleForm.note} onChange={(event) => setScheduleForm({ ...scheduleForm, note: event.target.value })} placeholder="Keterangan" />
-            <button className="primary-button" type="submit"><Save size={17} aria-hidden="true" />Simpan jadwal</button>
-            <button className="icon-button" type="button" aria-label="Reset form jadwal" onClick={() => setScheduleForm(blankSchedule)}><Trash2 size={18} /></button>
+            <span className="rounded-xl bg-blue-50 px-4 py-3 font-black text-blue-800">{manageSchedules.length} jadwal</span>
+          </div>
+          <form className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-3 xl:grid-cols-6" onSubmit={saveSchedule}>
+            <select className="rounded-xl border border-slate-200 px-3 py-3 font-semibold outline-none focus:border-blue-500" value={scheduleForm.stopId || manageStop?.id || ""} onChange={(event) => setScheduleForm({ ...scheduleForm, stopId: event.target.value, nextStopId: defaultNextStopId(event.target.value) })}>
+              {sortedStops.map((stop) => <option key={stop.id} value={stop.id}>{stop.name}</option>)}
+            </select>
+            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" value={scheduleForm.time} onChange={(event) => setScheduleForm({ ...scheduleForm, time: event.target.value })} placeholder="Jam" />
+            <select className="rounded-xl border border-slate-200 px-3 py-3 font-semibold outline-none focus:border-blue-500" value={scheduleForm.nextStopId || defaultNextStopId(scheduleForm.stopId || manageStop?.id)} onChange={(event) => setScheduleForm({ ...scheduleForm, nextStopId: event.target.value })}>
+              {sortedStops.map((stop) => <option key={stop.id} value={stop.id}>{stop.name}</option>)}
+            </select>
+            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" value={scheduleForm.days} onChange={(event) => setScheduleForm({ ...scheduleForm, days: event.target.value })} placeholder="Hari operasional" />
+            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" value={scheduleForm.note} onChange={(event) => setScheduleForm({ ...scheduleForm, note: event.target.value })} placeholder="Keterangan" />
+            <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white" type="submit"><Save size={17} />Simpan</button>
           </form>
-          <ScheduleTable
-            schedules={schedules}
-            routeMap={routeMap}
-            onEdit={(item) => setScheduleForm(item)}
-            onDelete={(id) => setSchedules((items) => items.filter((item) => item.id !== id))}
-          />
+          <ScheduleTable schedules={manageSchedules} stopMap={stopMap} onEdit={setScheduleForm} onDelete={(id) => setSchedules((items) => items.filter((item) => item.id !== id))} />
         </section>
 
-        <section className="admin-section" id="rute">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Rute dan Halte</p>
-              <h2>Kelola urutan halte</h2>
-            </div>
-          </div>
-          <form className="admin-form route-form" onSubmit={saveRoute}>
-            <input value={routeForm.name} onChange={(event) => setRouteForm({ ...routeForm, name: event.target.value })} placeholder="Nama rute" required />
-            <input type="color" value={routeForm.color} onChange={(event) => setRouteForm({ ...routeForm, color: event.target.value })} aria-label="Warna rute" />
-            <input className="wide-input" value={routeForm.stops} onChange={(event) => setRouteForm({ ...routeForm, stops: event.target.value })} placeholder="Halte, pisahkan dengan koma" required />
-            <button className="primary-button" type="submit"><Save size={17} aria-hidden="true" />Simpan rute</button>
+        <section className="mt-10" id="halte">
+          <SectionTitle eyebrow="Halte" title="Kelola titik halte pada peta" />
+          <form className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-3 xl:grid-cols-6" onSubmit={saveStop}>
+            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" value={stopForm.name} onChange={(event) => setStopForm({ ...stopForm, name: event.target.value })} placeholder="Nama halte" required />
+            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" value={stopForm.area} onChange={(event) => setStopForm({ ...stopForm, area: event.target.value })} placeholder="Area" required />
+            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" type="number" min="1" value={stopForm.order} onChange={(event) => setStopForm({ ...stopForm, order: event.target.value })} placeholder="Urutan" />
+            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" type="number" min="0" max="100" value={stopForm.x} onChange={(event) => setStopForm({ ...stopForm, x: event.target.value })} placeholder="Posisi X" />
+            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" type="number" min="0" max="100" value={stopForm.y} onChange={(event) => setStopForm({ ...stopForm, y: event.target.value })} placeholder="Posisi Y" />
+            <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white" type="submit"><Save size={17} />Simpan</button>
           </form>
-          <div className="route-grid">
-            {routes.map((route) => (
-              <RouteCard
-                key={route.id}
-                route={route}
-                onEdit={(item) => setRouteForm({ ...item, stops: item.stops.join(", ") })}
-                onDelete={(id) => setRoutes((items) => items.filter((item) => item.id !== id))}
-              />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {sortedStops.map((stop) => (
+              <StopCard key={stop.id} stop={stop} scheduleCount={getScheduleCount(stop.id)} onEdit={setStopForm} onDelete={(id) => {
+                setStops((items) => items.filter((item) => item.id !== id));
+                setSchedules((items) => items.filter((item) => item.stopId !== id));
+              }} />
             ))}
           </div>
         </section>
 
-        <section className="admin-section" id="pengumuman">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Pengumuman</p>
-              <h2>Kelola info operasional</h2>
-            </div>
-          </div>
-          <form className="admin-form announcement-form" onSubmit={saveAnnouncement}>
-            <input value={announcementForm.title} onChange={(event) => setAnnouncementForm({ ...announcementForm, title: event.target.value })} placeholder="Judul pengumuman" required />
-            <input value={announcementForm.createdAt} onChange={(event) => setAnnouncementForm({ ...announcementForm, createdAt: event.target.value })} placeholder="Tanggal" />
-            <textarea value={announcementForm.content} onChange={(event) => setAnnouncementForm({ ...announcementForm, content: event.target.value })} placeholder="Isi pengumuman" required />
-            <button className="primary-button" type="submit"><Save size={17} aria-hidden="true" />Simpan pengumuman</button>
+        <section className="mt-10" id="pengumuman">
+          <SectionTitle eyebrow="Pengumuman" title="Kelola info operasional" />
+          <form className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_160px_2fr_auto]" onSubmit={saveAnnouncement}>
+            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" value={announcementForm.title} onChange={(event) => setAnnouncementForm({ ...announcementForm, title: event.target.value })} placeholder="Judul" required />
+            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" value={announcementForm.createdAt} onChange={(event) => setAnnouncementForm({ ...announcementForm, createdAt: event.target.value })} placeholder="Tanggal" />
+            <textarea className="min-h-12 rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" value={announcementForm.content} onChange={(event) => setAnnouncementForm({ ...announcementForm, content: event.target.value })} placeholder="Isi pengumuman" required />
+            <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white" type="submit"><Save size={17} />Simpan</button>
           </form>
-          <div className="announcement-grid">
+          <div className="grid gap-4 md:grid-cols-2">
             {announcements.map((announcement) => (
-              <AnnouncementCard
-                key={announcement.id}
-                announcement={announcement}
-                onEdit={setAnnouncementForm}
-                onDelete={(id) => setAnnouncements((items) => items.filter((item) => item.id !== id))}
-              />
+              <AnnouncementCard key={announcement.id} announcement={announcement} onEdit={setAnnouncementForm} onDelete={(id) => setAnnouncements((items) => items.filter((item) => item.id !== id))} />
             ))}
           </div>
         </section>
@@ -268,10 +253,19 @@ export default function AdminPage() {
 
 function Stat({ icon, label, value }) {
   return (
-    <div className="stat-card">
-      <span>{icon}</span>
-      <p>{label}</p>
-      <strong>{value}</strong>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <span className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-700">{icon}</span>
+      <p className="mt-3 text-sm font-bold text-slate-500">{label}</p>
+      <strong className="mt-1 block text-3xl font-black text-slate-950">{value}</strong>
+    </div>
+  );
+}
+
+function SectionTitle({ eyebrow, title }) {
+  return (
+    <div className="mb-4">
+      <p className="text-sm font-black uppercase tracking-wide text-blue-700">{eyebrow}</p>
+      <h2 className="mt-1 text-3xl font-black text-slate-950">{title}</h2>
     </div>
   );
 }

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { initialAnnouncements, initialRoutes, initialSchedules } from "@/data/dummyData";
+import { initialAnnouncements, initialSchedules, initialStops } from "@/data/dummyData";
 
-const storageKey = "busuns-data";
+const storageKey = "busuns-data-map-v1";
 
 export function useBusData() {
-  const [routes, setRoutes] = useState(initialRoutes);
+  const [stops, setStops] = useState(initialStops);
   const [schedules, setSchedules] = useState(initialSchedules);
   const [announcements, setAnnouncements] = useState(initialAnnouncements);
 
@@ -16,7 +16,7 @@ export function useBusData() {
 
     try {
       const parsed = JSON.parse(stored);
-      setRoutes(parsed.routes?.length ? parsed.routes : initialRoutes);
+      setStops(parsed.stops?.length ? parsed.stops : initialStops);
       setSchedules(parsed.schedules?.length ? parsed.schedules : initialSchedules);
       setAnnouncements(
         parsed.announcements?.length ? parsed.announcements : initialAnnouncements,
@@ -29,21 +29,21 @@ export function useBusData() {
   useEffect(() => {
     window.localStorage.setItem(
       storageKey,
-      JSON.stringify({ routes, schedules, announcements }),
+      JSON.stringify({ stops, schedules, announcements }),
     );
-  }, [routes, schedules, announcements]);
+  }, [stops, schedules, announcements]);
 
-  const routeMap = useMemo(
-    () => Object.fromEntries(routes.map((route) => [route.id, route])),
-    [routes],
+  const stopMap = useMemo(
+    () => Object.fromEntries(stops.map((stop) => [stop.id, stop])),
+    [stops],
   );
 
   return {
-    routes,
+    stops,
     schedules,
     announcements,
-    routeMap,
-    setRoutes,
+    stopMap,
+    setStops,
     setSchedules,
     setAnnouncements,
   };

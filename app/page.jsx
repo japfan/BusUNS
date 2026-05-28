@@ -1,147 +1,145 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, Info, Search } from "lucide-react";
 import AnnouncementCard from "@/components/AnnouncementCard";
+import InteractiveRouteMap from "@/components/InteractiveRouteMap";
 import Navbar from "@/components/Navbar";
-import RouteCard from "@/components/RouteCard";
-import ScheduleTable from "@/components/ScheduleTable";
+import StopSchedulePanel from "@/components/StopSchedulePanel";
 import { useBusData } from "@/components/useBusData";
 
 export default function HomePage() {
-  const { routes, schedules, announcements, routeMap } = useBusData();
+  const { stops, schedules, announcements, stopMap } = useBusData();
   const [query, setQuery] = useState("");
+  const [selectedStopId, setSelectedStopId] = useState("");
+  const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
 
-  const activeSchedules = schedules.filter((schedule) => schedule.status === "active");
-  const filteredSchedules = useMemo(() => {
+  const sortedStops = useMemo(
+    () => stops.filter((stop) => stop.status === "active").sort((a, b) => Number(a.order) - Number(b.order)),
+    [stops],
+  );
+  const selectedStop = stopMap[selectedStopId] ?? sortedStops[0];
+  const selectedSchedules = schedules
+    .filter((schedule) => schedule.status === "active" && schedule.stopId === selectedStop?.id)
+    .sort((a, b) => a.time.localeCompare(b.time));
+  const nextStop = stopMap[selectedSchedules[0]?.nextStopId];
+
+  const matchingStopIds = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    if (!keyword) return activeSchedules;
+    if (!keyword) return new Set(sortedStops.map((stop) => stop.id));
 
-    return activeSchedules.filter((schedule) => {
-      const route = routeMap[schedule.routeId];
-      const haystack = [
-        route?.name,
-        ...(route?.stops ?? []),
-        schedule.time,
-        schedule.from,
-        schedule.to,
-        schedule.days,
-        schedule.note,
-      ]
-        .join(" ")
-        .toLowerCase();
+    return new Set(
+      sortedStops
+        .filter((stop) => {
+          const stopSchedules = schedules.filter((schedule) => schedule.stopId === stop.id);
+          const text = [
+            stop.name,
+            stop.area,
+            ...stopSchedules.flatMap((schedule) => [schedule.time, schedule.days, schedule.note]),
+          ]
+            .join(" ")
+            .toLowerCase();
+          return text.includes(keyword);
+        })
+        .map((stop) => stop.id),
+    );
+  }, [query, schedules, sortedStops]);
 
-      return haystack.includes(keyword);
-    });
-  }, [activeSchedules, query, routeMap]);
+  const activeAnnouncements = announcements.filter((announcement) => announcement.status === "active");
 
-  const nextSchedule = filteredSchedules
-    .slice()
-    .sort((a, b) => a.time.localeCompare(b.time))[0];
-  const activeAnnouncements = announcements.filter((item) => item.status === "active");
+  function selectStop(stopId) {
+    setSelectedStopId(stopId);
+    setMobilePanelOpen(true);
+  }
 
   return (
-    <main>
+    <main className="min-h-screen bg-slate-50">
       <Navbar />
 
-      <section className="hero-section">
-        <div className="hero-content">
-          <p className="eyebrow">Sistem Informasi Bus Kampus</p>
-          <h1>BusUNS</h1>
-          <p className="hero-copy">
-            Cek jadwal keberangkatan, rute, halte, dan pengumuman operasional bus kampus dalam
-            satu halaman yang ringan.
+      <section className="mx-auto grid min-h-[calc(100vh-96px)] w-[min(1180px,calc(100%-32px))] items-center gap-8 py-14 md:grid-cols-[1fr_0.82fr]">
+        <div>
+          <p className="text-sm font-black uppercase tracking-wide text-blue-700">Sistem Informasi Jadwal Bus UNS</p>
+          <h1 className="mt-3 text-6xl font-black leading-none tracking-normal text-slate-950 md:text-8xl">BusUNS</h1>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600 md:text-xl">
+            Demo UI peta rute interaktif untuk satu rute utama BusUNS. Klik titik halte untuk melihat
+            jadwal keberangkatan dari halte tersebut.
           </p>
-          <div className="hero-actions">
-            <a className="primary-button" href="#jadwal">
-              Lihat jadwal
+          <div className="mt-7 flex flex-wrap gap-3">
+            <a className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-700 px-5 py-3 font-black text-white shadow-lg shadow-blue-200" href="#peta">
+              Buka peta rute
               <ArrowRight size={18} aria-hidden="true" />
             </a>
-            <a className="secondary-button" href="#rute">
-              Detail rute
+            <a className="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-5 py-3 font-black text-slate-700" href="#pengumuman">
+              Pengumuman
             </a>
           </div>
         </div>
-        <div className="route-visual" aria-label="Visualisasi rute BusUNS">
-          {routes.map((route) => (
-            <div className="visual-route" key={route.id}>
-              <span style={{ backgroundColor: route.color }}>{route.name}</span>
-              <div className="visual-line">
-                {route.stops.map((stop) => (
-                  <i key={stop} title={stop} />
-                ))}
-              </div>
-            </div>
-          ))}
+
+        <div className="rounded-2xl border border-blue-100 bg-white p-6 shadow-xl shadow-slate-200/70">
+          <p className="text-sm font-black uppercase tracking-wide text-slate-500">Jadwal terpilih</p>
+          <h2 className="mt-2 text-4xl font-black text-slate-950">{selectedStop?.name}</h2>
+          <strong className="mt-5 block text-7xl font-black leading-none text-blue-700">{selectedSchedules[0]?.time ?? "--.--"}</strong>
+          <p className="mt-4 text-lg font-bold text-slate-600">Halte berikutnya: {nextStop?.name ?? "-"}</p>
         </div>
       </section>
 
-      <section className="quick-panel" aria-label="Ringkasan jadwal berikutnya">
-        <div className="search-box">
-          <Search size={20} aria-hidden="true" />
+      <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-6">
+        <div className="flex min-h-16 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 shadow-sm">
+          <Search size={20} className="text-slate-400" aria-hidden="true" />
           <input
+            className="w-full border-0 bg-transparent text-base font-semibold text-slate-800 outline-none placeholder:text-slate-400"
             type="search"
-            placeholder="Cari rute, halte, tujuan, atau jam. Contoh: Teknik, Rute B, 06.30"
+            placeholder="Cari halte. Contoh: Teknik, Rektorat, FSRD"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-        <div className="next-card">
-          <div>
-            <p className="muted-small">Jadwal berikutnya</p>
-            <h2>{nextSchedule ? nextSchedule.time : "--.--"}</h2>
-          </div>
-          {nextSchedule ? (
-            <div>
-              <strong>{routeMap[nextSchedule.routeId]?.name}</strong>
-              <p>{nextSchedule.from} ke {nextSchedule.to}</p>
-            </div>
-          ) : (
-            <p>Tidak ada jadwal yang cocok dengan pencarian.</p>
-          )}
-        </div>
       </section>
 
-      <section className="content-section" id="jadwal">
-        <div className="section-heading">
+      <section className="mx-auto grid w-[min(1180px,calc(100%-32px))] gap-5 pb-16 md:grid-cols-[minmax(0,1fr)_360px]">
+        <InteractiveRouteMap
+          stops={sortedStops}
+          selectedStopId={selectedStop?.id}
+          matchingStopIds={matchingStopIds}
+          onSelectStop={selectStop}
+        />
+        <StopSchedulePanel
+          stop={selectedStop}
+          nextStop={nextStop}
+          schedules={selectedSchedules}
+        />
+      </section>
+
+      {mobilePanelOpen ? (
+        <>
+          <button
+            className="fixed inset-0 z-40 bg-slate-950/30 md:hidden"
+            type="button"
+            aria-label="Tutup panel jadwal"
+            onClick={() => setMobilePanelOpen(false)}
+          />
+          <StopSchedulePanel
+            stop={selectedStop}
+            nextStop={nextStop}
+            schedules={selectedSchedules}
+            mobile
+            onClose={() => setMobilePanelOpen(false)}
+          />
+        </>
+      ) : null}
+
+      <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-20" id="pengumuman">
+        <div className="mb-5 flex items-end justify-between gap-4">
           <div>
-            <p className="eyebrow">Jadwal Bus</p>
-            <h2>Keberangkatan aktif</h2>
+            <p className="text-sm font-black uppercase tracking-wide text-blue-700">Pengumuman</p>
+            <h2 className="mt-1 text-4xl font-black text-slate-950">Info operasional</h2>
           </div>
-          <span className="section-badge">
-            <CalendarDays size={16} aria-hidden="true" />
-            {filteredSchedules.length} jadwal
+          <span className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-500 sm:inline-flex">
+            <Info size={16} aria-hidden="true" />
+            Tidak ada live tracking
           </span>
         </div>
-        <ScheduleTable schedules={filteredSchedules} routeMap={routeMap} compact />
-      </section>
-
-      <section className="content-section" id="rute">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Rute dan Halte</p>
-            <h2>Urutan halte tiap rute</h2>
-          </div>
-          <span className="section-badge">
-            <ShieldCheck size={16} aria-hidden="true" />
-            Tanpa GPS
-          </span>
-        </div>
-        <div className="route-grid">
-          {routes.map((route) => (
-            <RouteCard key={route.id} route={route} />
-          ))}
-        </div>
-      </section>
-
-      <section className="content-section" id="pengumuman">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Pengumuman</p>
-            <h2>Info operasional terbaru</h2>
-          </div>
-        </div>
-        <div className="announcement-grid">
+        <div className="grid gap-4 md:grid-cols-2">
           {activeAnnouncements.map((announcement) => (
             <AnnouncementCard key={announcement.id} announcement={announcement} />
           ))}

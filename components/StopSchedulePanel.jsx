@@ -1,13 +1,23 @@
 import { CalendarDays, Clock3, MapPin, Navigation } from "lucide-react";
 
-export default function StopSchedulePanel({ stop, nextStop, schedules, mobile = false, onClose }) {
+export default function StopSchedulePanel({
+  stop,
+  nextStop,
+  schedules,
+  mobile = false,
+  onClose,
+  closing = false,
+  operationalStatus,
+}) {
   if (!stop) return null;
 
   return (
     <aside
       className={`border border-slate-200 bg-white shadow-xl shadow-slate-200/70 ${
         mobile
-          ? "fixed inset-x-0 bottom-0 z-50 max-h-[78vh] overflow-y-auto rounded-t-3xl p-5 md:hidden"
+          ? `fixed inset-x-0 bottom-0 z-[1000] max-h-[78vh] overflow-y-auto rounded-t-3xl p-5 md:hidden ${
+              closing ? "animate-sheet-out" : "animate-sheet-in"
+            }`
           : "hidden rounded-2xl p-6 md:block"
       }`}
     >
@@ -37,6 +47,13 @@ export default function StopSchedulePanel({ stop, nextStop, schedules, mobile = 
         </p>
         <strong className="mt-1 block text-xl text-slate-950">{nextStop?.name ?? "Akhir rute"}</strong>
       </div>
+
+      {operationalStatus && !operationalStatus.isOperating ? (
+        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
+          <p className="text-sm font-black uppercase tracking-wide text-red-700">Bus tidak beroperasi</p>
+          <strong className="mt-1 block leading-6 text-red-900">{operationalStatus.message}</strong>
+        </div>
+      ) : null}
 
       <div className="mt-5">
         <p className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-slate-500">

@@ -1,18 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { ArrowRight, Info, Search } from "lucide-react";
 import AnnouncementCard from "@/components/AnnouncementCard";
-import InteractiveRouteMap from "@/components/InteractiveRouteMap";
 import Navbar from "@/components/Navbar";
 import StopSchedulePanel from "@/components/StopSchedulePanel";
 import { useBusData } from "@/components/useBusData";
 
+const RealLeafletMap = dynamic(() => import("@/components/RealLeafletMap"), {
+  loading: () => (
+    <div className="grid h-[540px] place-items-center rounded-2xl border border-slate-200 bg-white font-bold text-slate-500 shadow-xl shadow-slate-200/70">
+      Memuat peta...
+    </div>
+  ),
+  ssr: false,
+});
+
 export default function HomePage() {
-  const { stops, schedules, announcements, stopMap } = useBusData();
+  const { stops, schedules, announcements, operationalStatus, stopMap } = useBusData();
   const [query, setQuery] = useState("");
   const [selectedStopId, setSelectedStopId] = useState("");
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+  const [mobilePanelClosing, setMobilePanelClosing] = useState(false);
+  const [now, setNow] = useState(() => new Date());
 
   const sortedStops = useMemo(
     () => stops.filter((stop) => stop.status === "active").sort((a, b) => Number(a.order) - Number(b.order)),
@@ -23,6 +34,31 @@ export default function HomePage() {
     .filter((schedule) => schedule.status === "active" && schedule.stopId === selectedStop?.id)
     .sort((a, b) => a.time.localeCompare(b.time));
   const nextStop = stopMap[selectedSchedules[0]?.nextStopId];
+  const nextGlobalSchedule = useMemo(() => {
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const activeSchedules = schedules
+      .filter((schedule) => schedule.status === "active" && stopMap[schedule.stopId]?.status === "active")
+      .map((schedule) => {
+        const [hour, minute] = schedule.time.split(".").map(Number);
+        const scheduleMinutes = hour * 60 + minute;
+        const minutesUntil =
+          scheduleMinutes >= currentMinutes
+            ? scheduleMinutes - currentMinutes
+            : scheduleMinutes + 24 * 60 - currentMinutes;
+
+        return { ...schedule, minutesUntil };
+      })
+      .sort((a, b) => a.minutesUntil - b.minutesUntil || a.time.localeCompare(b.time));
+
+    return activeSchedules[0];
+  }, [now, schedules]);
+  const nextGlobalStop = stopMap[nextGlobalSchedule?.stopId];
+  const nextGlobalNextStop = stopMap[nextGlobalSchedule?.nextStopId];
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const matchingStopIds = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -49,7 +85,16 @@ export default function HomePage() {
 
   function selectStop(stopId) {
     setSelectedStopId(stopId);
+    setMobilePanelClosing(false);
     setMobilePanelOpen(true);
+  }
+
+  function closeMobilePanel() {
+    setMobilePanelClosing(true);
+    window.setTimeout(() => {
+      setMobilePanelOpen(false);
+      setMobilePanelClosing(false);
+    }, 380);
   }
 
   return (
@@ -76,12 +121,33 @@ export default function HomePage() {
         </div>
 
         <div className="rounded-2xl border border-blue-100 bg-white p-6 shadow-xl shadow-slate-200/70">
-          <p className="text-sm font-black uppercase tracking-wide text-slate-500">Jadwal terpilih</p>
-          <h2 className="mt-2 text-4xl font-black text-slate-950">{selectedStop?.name}</h2>
-          <strong className="mt-5 block text-7xl font-black leading-none text-blue-700">{selectedSchedules[0]?.time ?? "--.--"}</strong>
-          <p className="mt-4 text-lg font-bold text-slate-600">Halte berikutnya: {nextStop?.name ?? "-"}</p>
+          {operationalStatus?.isOperating ? (
+            <>
+              <p className="text-sm font-black uppercase tracking-wide text-slate-500">Jadwal berikutnya</p>
+              <h2 className="mt-2 text-4xl font-black text-slate-950">{nextGlobalStop?.name ?? "-"}</h2>
+              <strong className="mt-5 block text-7xl font-black leading-none text-blue-700">{nextGlobalSchedule?.time ?? "--.--"}</strong>
+              <p className="mt-4 text-lg font-bold text-slate-600">Halte berikutnya: {nextGlobalNextStop?.name ?? "-"}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-black uppercase tracking-wide text-red-700">Status operasional</p>
+              <h2 className="mt-2 text-4xl font-black text-slate-950">Bus tidak beroperasi</h2>
+              <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-lg font-bold leading-7 text-red-900">
+                {operationalStatus?.message}
+              </p>
+            </>
+          )}
         </div>
       </section>
+
+      {!operationalStatus?.isOperating ? (
+        <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-6">
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-900">
+            <strong className="block text-lg">Bus sedang tidak beroperasi.</strong>
+            <p className="mt-1 font-semibold">{operationalStatus?.message}</p>
+          </div>
+        </section>
+      ) : null}
 
       <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-6">
         <div className="flex min-h-16 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 shadow-sm">
@@ -97,7 +163,7 @@ export default function HomePage() {
       </section>
 
       <section className="mx-auto grid w-[min(1180px,calc(100%-32px))] gap-5 pb-16 md:grid-cols-[minmax(0,1fr)_360px]">
-        <InteractiveRouteMap
+        <RealLeafletMap
           stops={sortedStops}
           selectedStopId={selectedStop?.id}
           matchingStopIds={matchingStopIds}
@@ -107,23 +173,28 @@ export default function HomePage() {
           stop={selectedStop}
           nextStop={nextStop}
           schedules={selectedSchedules}
+          operationalStatus={operationalStatus}
         />
       </section>
 
       {mobilePanelOpen ? (
         <>
           <button
-            className="fixed inset-0 z-40 bg-slate-950/30 md:hidden"
+            className={`fixed inset-0 z-[900] bg-slate-950/30 backdrop-blur-sm md:hidden ${
+              mobilePanelClosing ? "animate-fade-out" : "animate-fade-in"
+            }`}
             type="button"
             aria-label="Tutup panel jadwal"
-            onClick={() => setMobilePanelOpen(false)}
+            onClick={closeMobilePanel}
           />
           <StopSchedulePanel
             stop={selectedStop}
             nextStop={nextStop}
             schedules={selectedSchedules}
             mobile
-            onClose={() => setMobilePanelOpen(false)}
+            closing={mobilePanelClosing}
+            operationalStatus={operationalStatus}
+            onClose={closeMobilePanel}
           />
         </>
       ) : null}

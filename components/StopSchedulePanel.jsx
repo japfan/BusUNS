@@ -1,15 +1,25 @@
-import { CalendarDays, Clock3, MapPin, Navigation } from "lucide-react";
+import { Clock3, MapPin, Navigation } from "lucide-react";
 
 export default function StopSchedulePanel({
   stop,
   nextStop,
   schedules,
+  currentTime,
   mobile = false,
   onClose,
   closing = false,
   operationalStatus,
 }) {
   if (!stop) return null;
+
+  const now = currentTime ?? new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  function hasSchedulePassed(time) {
+    const [hour, minute] = time.split(".").map(Number);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return false;
+    return hour * 60 + minute < currentMinutes;
+  }
 
   return (
     <aside
@@ -61,27 +71,23 @@ export default function StopSchedulePanel({
           Jam keberangkatan
         </p>
         <div className="mt-3 grid grid-cols-3 gap-2">
-          {schedules.map((schedule) => (
-            <span className="rounded-xl bg-slate-900 px-3 py-3 text-center text-lg font-black text-white" key={schedule.id}>
-              {schedule.time}
-            </span>
-          ))}
+          {schedules.map((schedule) => {
+            const passed = hasSchedulePassed(schedule.time);
+
+            return (
+              <span
+                className={`rounded-xl px-3 py-3 text-center text-lg font-black ${
+                  passed ? "bg-slate-200 text-slate-500" : "bg-slate-900 text-white"
+                }`}
+                key={schedule.id}
+              >
+                {schedule.time}
+              </span>
+            );
+          })}
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3">
-        <div className="rounded-xl border border-slate-200 p-4">
-          <p className="flex items-center gap-2 text-sm font-bold text-slate-500">
-            <CalendarDays size={16} aria-hidden="true" />
-            Hari operasional
-          </p>
-          <strong className="mt-1 block text-slate-950">{schedules[0]?.days ?? "-"}</strong>
-        </div>
-        <div className="rounded-xl border border-slate-200 p-4">
-          <p className="text-sm font-bold text-slate-500">Keterangan</p>
-          <strong className="mt-1 block text-slate-950">{schedules[0]?.note ?? "Belum ada keterangan."}</strong>
-        </div>
-      </div>
     </aside>
   );
 }

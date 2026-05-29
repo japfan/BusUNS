@@ -210,18 +210,24 @@ export default function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 lg:grid lg:grid-cols-[260px_1fr]">
-      <aside className="sticky top-0 z-30 flex gap-2 border-b border-slate-200 bg-white p-4 lg:h-screen lg:flex-col lg:border-b-0 lg:border-r">
-        <Link className="mb-2 flex items-center gap-3 font-black text-slate-950" href="/">
-          <span className="grid size-10 place-items-center rounded-lg bg-blue-700 text-white"><Bus size={20} /></span>
-          BusUNS Admin
-        </Link>
-        <a className="rounded-lg px-3 py-2 font-bold text-slate-600 hover:bg-slate-100" href="#jadwal">Kelola Jadwal</a>
-        <a className="rounded-lg px-3 py-2 font-bold text-slate-600 hover:bg-slate-100" href="#halte">Kelola Halte</a>
-        <a className="rounded-lg px-3 py-2 font-bold text-slate-600 hover:bg-slate-100" href="#operasional">Operasional</a>
-        <a className="rounded-lg px-3 py-2 font-bold text-slate-600 hover:bg-slate-100" href="#pengumuman">Pengumuman</a>
-        <Link className="rounded-lg px-3 py-2 font-bold text-slate-600 hover:bg-slate-100" href="/">Halaman Mahasiswa</Link>
-      </aside>
+    <main className="min-h-screen bg-slate-50">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex min-h-16 w-[min(1080px,calc(100%-32px))] flex-wrap items-center justify-between gap-3 py-3">
+          <Link className="flex items-center gap-3 font-black text-slate-950" href="/">
+            <span className="grid size-10 place-items-center rounded-lg bg-blue-700 text-white"><Bus size={20} /></span>
+            BusUNS Admin
+          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-black text-slate-700" href="/">
+              <ArrowLeft size={17} aria-hidden="true" />
+              Menu utama
+            </Link>
+            <button className="rounded-xl bg-slate-900 px-4 py-3 font-black text-white" type="button" onClick={() => setLoggedIn(false)}>
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
 
       <section className="mx-auto w-[min(1080px,calc(100%-32px))] py-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -229,9 +235,6 @@ export default function AdminPage() {
             <p className="text-sm font-black uppercase tracking-wide text-blue-700">Dashboard Admin</p>
             <h1 className="mt-1 text-4xl font-black text-slate-950">Kelola Peta dan Jadwal Halte</h1>
           </div>
-          <button className="rounded-xl border border-slate-200 bg-white px-4 py-3 font-black text-slate-700" type="button" onClick={() => setLoggedIn(false)}>
-            Keluar
-          </button>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
@@ -363,7 +366,6 @@ export default function AdminPage() {
                             {schedule.time}
                           </strong>
                           <p className="mt-2 font-bold text-slate-600">Menuju {nextStop?.name ?? "halte berikutnya"}</p>
-                          <p className="mt-1 text-sm font-semibold text-slate-500">{schedule.days} · {schedule.note}</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <button className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-black text-slate-700" type="button" onClick={() => editSchedule(schedule)}>
@@ -427,15 +429,6 @@ export default function AdminPage() {
                   {sortedStops.map((stop) => <option key={stop.id} value={stop.id}>{stop.name}</option>)}
                 </select>
               </label>
-              <label className="mt-4 block font-bold text-slate-600">
-                Hari operasional
-                <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" value={scheduleForm.days} onChange={(event) => setScheduleForm({ ...scheduleForm, days: event.target.value })} placeholder="Senin-Jumat" />
-              </label>
-              <label className="mt-4 block font-bold text-slate-600">
-                Keterangan
-                <textarea className="mt-2 min-h-24 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500" value={scheduleForm.note} onChange={(event) => setScheduleForm({ ...scheduleForm, note: event.target.value })} placeholder="Keberangkatan reguler" />
-              </label>
-
               <div className="mt-5 flex flex-wrap gap-3">
                 <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white" type="submit"><Save size={17} />Simpan</button>
                 <button className="rounded-xl border border-slate-200 px-4 py-3 font-black text-slate-700" type="button" onClick={() => setShowScheduleForm(false)}>

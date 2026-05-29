@@ -51,7 +51,7 @@ export default function HomePage() {
       .sort((a, b) => a.minutesUntil - b.minutesUntil || a.time.localeCompare(b.time));
 
     return activeSchedules[0];
-  }, [now, schedules]);
+  }, [now, schedules, stopMap]);
   const nextGlobalStop = stopMap[nextGlobalSchedule?.stopId];
   const nextGlobalNextStop = stopMap[nextGlobalSchedule?.nextStopId];
 
@@ -71,7 +71,7 @@ export default function HomePage() {
           const text = [
             stop.name,
             stop.area,
-            ...stopSchedules.flatMap((schedule) => [schedule.time, schedule.days, schedule.note]),
+            ...stopSchedules.map((schedule) => schedule.time),
           ]
             .join(" ")
             .toLowerCase();
@@ -173,6 +173,7 @@ export default function HomePage() {
           stop={selectedStop}
           nextStop={nextStop}
           schedules={selectedSchedules}
+          currentTime={now}
           operationalStatus={operationalStatus}
         />
       </section>
@@ -191,6 +192,7 @@ export default function HomePage() {
             stop={selectedStop}
             nextStop={nextStop}
             schedules={selectedSchedules}
+            currentTime={now}
             mobile
             closing={mobilePanelClosing}
             operationalStatus={operationalStatus}
@@ -205,10 +207,6 @@ export default function HomePage() {
             <p className="text-sm font-black uppercase tracking-wide text-blue-700">Pengumuman</p>
             <h2 className="mt-1 text-4xl font-black text-slate-950">Info operasional</h2>
           </div>
-          <span className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-500 sm:inline-flex">
-            <Info size={16} aria-hidden="true" />
-            Tidak ada live tracking
-          </span>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {activeAnnouncements.map((announcement) => (

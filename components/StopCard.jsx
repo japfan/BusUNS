@@ -1,11 +1,11 @@
-import { Folder, MapPin } from "lucide-react";
+import { Bus, MapPin } from "lucide-react";
 
 export default function StopCard({ stop, active, scheduleCount = 0, onSelect, onEdit, onDelete }) {
   return (
     <article className={`rounded-2xl border bg-white p-4 shadow-sm ${active ? "border-blue-500 ring-4 ring-blue-100" : "border-slate-200"}`}>
       <button className="grid w-full grid-cols-[44px_1fr] gap-3 text-left" type="button" onClick={() => onSelect?.(stop.id)}>
         <span className="grid size-11 place-items-center rounded-xl bg-blue-50 text-blue-700">
-          <Folder size={20} aria-hidden="true" />
+          <Bus size={20} aria-hidden="true" />
         </span>
         <span className="min-w-0">
           <span className="flex flex-wrap items-center gap-2">

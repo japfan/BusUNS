@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, Bus, Clock, LogIn, MapPin, Megaphone, Plus, Power, Save, Trash2 } from "lucide-react";
+import {
+  AlertTriangle, ArrowLeft, Bus, Clock, LogIn, MapPin,
+  Megaphone, Plus, Save, Trash2,
+} from "lucide-react";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import StopCard from "@/components/StopCard";
 import { supabase } from "@/lib/supabaseClient";
@@ -36,11 +39,52 @@ const blankAnnouncement = {
 export default function AdminPage() {
   const { stops, schedules, announcements, operationalStatus, stopMap, loading } = useBusData();
 
+  // ─── AUTH STATE ───────────────────────────────────────────────────
+  const [authLoading, setAuthLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [credentials, setCredentials] = useState({ username: "", password: "" });
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
-  // Local copies for optimistic UI
+  // Cek session yang sudah ada saat halaman pertama dibuka
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setLoggedIn(!!session);
+      setAuthLoading(false);
+    });
+
+    // Listen perubahan auth (login/logout dari tab lain, token expired, dll)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setLoggedIn(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  async function handleLogin(event) {
+    event.preventDefault();
+    setError("");
+    setLoginLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: credentials.email,
+      password: credentials.password,
+    });
+
+    if (error) {
+      setError("Login gagal: " + error.message);
+    }
+    // setLoggedIn ditangani oleh onAuthStateChange di atas
+
+    setLoginLoading(false);
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    // setLoggedIn(false) ditangani oleh onAuthStateChange
+  }
+
+  // ─── LOCAL STATE ──────────────────────────────────────────────────
   const [localStops, setLocalStops] = useState([]);
   const [localSchedules, setLocalSchedules] = useState([]);
   const [localAnnouncements, setLocalAnnouncements] = useState([]);
@@ -54,7 +98,6 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
 
-  // Sync local state when db data loads
   useEffect(() => { setLocalStops(stops); }, [stops]);
   useEffect(() => { setLocalSchedules(schedules); }, [schedules]);
   useEffect(() => { setLocalAnnouncements(announcements); }, [announcements]);
@@ -78,19 +121,8 @@ export default function AdminPage() {
     .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
   const activeAnnouncements = localAnnouncements.filter((a) => a.status === "active");
 
-  function defaultNextStopId(stopId) {
-    const index = sortedStops.findIndex((s) => s.id === stopId);
-    return sortedStops[index + 1]?.id ?? sortedStops[0]?.id ?? null;
-  }
-
-  function handleLogin(event) {
-    event.preventDefault();
-    if (credentials.username === "admin" && credentials.password === "admin123") {
-      setLoggedIn(true);
-      setError("");
-    } else {
-      setError("Username atau password salah. Demo: admin / admin123.");
-    }
+  function getScheduleCount(stopId) {
+    return localSchedules.filter((s) => s.status === "active" && s.stop_id === stopId).length;
   }
 
   // ─── SCHEDULE CRUD ───────────────────────────────────────────────
@@ -109,17 +141,15 @@ export default function AdminPage() {
     };
 
     if (scheduleForm.id) {
-      // Update
       const { error } = await supabase.from("schedules").update(payload).eq("id", scheduleForm.id);
-      if (error) { showToast("Gagal update jadwal: " + error.message); }
+      if (error) showToast("Gagal update jadwal: " + error.message);
       else {
         setLocalSchedules((items) => items.map((item) => item.id === scheduleForm.id ? { ...item, ...payload } : item));
         showToast("Jadwal berhasil diupdate!");
       }
     } else {
-      // Insert
       const { data, error } = await supabase.from("schedules").insert(payload).select().single();
-      if (error) { showToast("Gagal tambah jadwal: " + error.message); }
+      if (error) showToast("Gagal tambah jadwal: " + error.message);
       else {
         setLocalSchedules((items) => [data, ...items]);
         showToast("Jadwal berhasil ditambahkan!");
@@ -133,7 +163,7 @@ export default function AdminPage() {
 
   async function deleteSchedule(id) {
     const { error } = await supabase.from("schedules").delete().eq("id", id);
-    if (error) { showToast("Gagal hapus jadwal: " + error.message); }
+    if (error) showToast("Gagal hapus jadwal: " + error.message);
     else {
       setLocalSchedules((items) => items.filter((item) => item.id !== id));
       showToast("Jadwal dihapus.");
@@ -143,7 +173,7 @@ export default function AdminPage() {
   async function toggleScheduleStatus(schedule) {
     const newStatus = schedule.status === "active" ? "inactive" : "active";
     const { error } = await supabase.from("schedules").update({ status: newStatus }).eq("id", schedule.id);
-    if (error) { showToast("Gagal update status: " + error.message); }
+    if (error) showToast("Gagal update status: " + error.message);
     else {
       setLocalSchedules((items) => items.map((item) => item.id === schedule.id ? { ...item, status: newStatus } : item));
     }
@@ -163,18 +193,16 @@ export default function AdminPage() {
     };
 
     if (stopForm.id) {
-      // Update existing
       const { error } = await supabase.from("stops").update(payload).eq("id", stopForm.id);
-      if (error) { showToast("Gagal update halte: " + error.message); }
+      if (error) showToast("Gagal update halte: " + error.message);
       else {
         setLocalStops((items) => items.map((item) => item.id === stopForm.id ? { ...item, ...payload } : item));
         showToast("Halte berhasil diupdate!");
       }
     } else {
-      // Insert new — id auto dari name
       const newId = "halte_" + stopForm.name.toLowerCase().replaceAll(" ", "_");
       const { data, error } = await supabase.from("stops").insert({ id: newId, ...payload }).select().single();
-      if (error) { showToast("Gagal tambah halte: " + error.message); }
+      if (error) showToast("Gagal tambah halte: " + error.message);
       else {
         setLocalStops((items) => [data, ...items]);
         showToast("Halte berhasil ditambahkan!");
@@ -188,7 +216,7 @@ export default function AdminPage() {
 
   async function deleteStop(id) {
     const { error } = await supabase.from("stops").delete().eq("id", id);
-    if (error) { showToast("Gagal hapus halte: " + error.message); }
+    if (error) showToast("Gagal hapus halte: " + error.message);
     else {
       setLocalStops((items) => items.filter((item) => item.id !== id));
       setLocalSchedules((items) => items.filter((item) => item.stop_id !== id));
@@ -208,14 +236,14 @@ export default function AdminPage() {
 
     if (announcementForm.id) {
       const { error } = await supabase.from("announcements").update(payload).eq("id", announcementForm.id);
-      if (error) { showToast("Gagal update pengumuman: " + error.message); }
+      if (error) showToast("Gagal update pengumuman: " + error.message);
       else {
         setLocalAnnouncements((items) => items.map((item) => item.id === announcementForm.id ? { ...item, ...payload } : item));
         showToast("Pengumuman diupdate!");
       }
     } else {
       const { data, error } = await supabase.from("announcements").insert(payload).select().single();
-      if (error) { showToast("Gagal tambah pengumuman: " + error.message); }
+      if (error) showToast("Gagal tambah pengumuman: " + error.message);
       else {
         setLocalAnnouncements((items) => [data, ...items]);
         showToast("Pengumuman ditambahkan!");
@@ -228,49 +256,93 @@ export default function AdminPage() {
 
   async function deleteAnnouncement(id) {
     const { error } = await supabase.from("announcements").delete().eq("id", id);
-    if (error) { showToast("Gagal hapus pengumuman: " + error.message); }
+    if (error) showToast("Gagal hapus pengumuman: " + error.message);
     else {
       setLocalAnnouncements((items) => items.filter((item) => item.id !== id));
       showToast("Pengumuman dihapus.");
     }
   }
 
-  function getScheduleCount(stopId) {
-    return localSchedules.filter((s) => s.status === "active" && s.stop_id === stopId).length;
+  // ─── LOADING AUTH ─────────────────────────────────────────────────
+  if (authLoading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-slate-50 font-semibold text-slate-500">
+        Memeriksa sesi...
+      </div>
+    );
   }
 
   // ─── LOGIN SCREEN ─────────────────────────────────────────────────
   if (!loggedIn) {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-50 p-6">
-        <Link className="fixed left-5 top-5 inline-flex items-center gap-2 font-bold text-slate-500" href="/">
+        <Link
+          className="fixed left-5 top-5 inline-flex items-center gap-2 font-bold text-slate-500 hover:text-slate-800 transition-colors"
+          href="/"
+        >
           <ArrowLeft size={18} aria-hidden="true" />
           Kembali
         </Link>
-        <form className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl" onSubmit={handleLogin}>
+
+        <form
+          className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-xl"
+          onSubmit={handleLogin}
+        >
           <div className="grid size-12 place-items-center rounded-xl bg-blue-700 text-white">
             <Bus size={24} aria-hidden="true" />
           </div>
           <h1 className="mt-5 text-3xl font-black text-slate-950">Login Admin BusUNS</h1>
-          <p className="mt-2 leading-6 text-slate-600">Kelola halte, jadwal, dan pengumuman operasional.</p>
-          <label className="mt-5 block font-bold text-slate-600">
-            Username
-            <input className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500" value={credentials.username} onChange={(e) => setCredentials({ ...credentials, username: e.target.value })} placeholder="admin" />
+          <p className="mt-2 leading-6 text-slate-500">
+            Masuk menggunakan email yang terdaftar di sistem.
+          </p>
+
+          <label className="mt-6 block font-bold text-slate-600">
+            Email
+            <input
+              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 transition-colors"
+              type="email"
+              value={credentials.email}
+              onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
+              placeholder="admin@busuns.com"
+              required
+              autoComplete="email"
+            />
           </label>
+
           <label className="mt-4 block font-bold text-slate-600">
             Password
-            <input className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500" type="password" value={credentials.password} onChange={(e) => setCredentials({ ...credentials, password: e.target.value })} placeholder="admin123" />
+            <input
+              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 transition-colors"
+              type="password"
+              value={credentials.password}
+              onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+              placeholder="••••••••"
+              required
+              autoComplete="current-password"
+            />
           </label>
-          {error ? <p className="mt-3 font-bold text-red-700">{error}</p> : null}
-          <button className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3 font-black text-white" type="submit">
+
+          {error && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-red-600" aria-hidden="true" />
+              <p className="text-sm font-semibold text-red-700">{error}</p>
+            </div>
+          )}
+
+          <button
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-700 px-5 py-3 font-black text-white hover:bg-blue-800 transition-colors disabled:opacity-60"
+            type="submit"
+            disabled={loginLoading}
+          >
             <LogIn size={18} aria-hidden="true" />
-            Masuk dashboard
+            {loginLoading ? "Masuk..." : "Masuk dashboard"}
           </button>
         </form>
       </main>
     );
   }
 
+  // ─── LOADING DATA ─────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-slate-50 font-semibold text-slate-600">
@@ -282,25 +354,33 @@ export default function AdminPage() {
   // ─── MAIN ADMIN ───────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-slate-50">
-      {/* Toast */}
-      {toast ? (
+      {toast && (
         <div className="fixed bottom-6 left-1/2 z-[9999] -translate-x-1/2 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white shadow-xl">
           {toast}
         </div>
-      ) : null}
+      )}
 
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex min-h-16 w-[min(1080px,calc(100%-32px))] flex-wrap items-center justify-between gap-3 py-3">
           <Link className="flex items-center gap-3 font-black text-slate-950" href="/">
-            <span className="grid size-10 place-items-center rounded-lg bg-blue-700 text-white"><Bus size={20} /></span>
+            <span className="grid size-10 place-items-center rounded-lg bg-blue-700 text-white">
+              <Bus size={20} />
+            </span>
             BusUNS Admin
           </Link>
           <div className="flex flex-wrap gap-2">
-            <Link className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-black text-slate-700" href="/">
+            <Link
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 font-black text-slate-700 hover:bg-slate-50 transition-colors"
+              href="/"
+            >
               <ArrowLeft size={17} aria-hidden="true" />
               Menu utama
             </Link>
-            <button className="rounded-xl bg-slate-900 px-4 py-3 font-black text-white" type="button" onClick={() => setLoggedIn(false)}>
+            <button
+              className="rounded-xl bg-slate-900 px-4 py-3 font-black text-white hover:bg-slate-700 transition-colors"
+              type="button"
+              onClick={handleLogout}
+            >
               Logout
             </button>
           </div>
@@ -323,7 +403,6 @@ export default function AdminPage() {
         <section className="mt-10" id="jadwal">
           <SectionTitle eyebrow="Jadwal" title="Kelola jadwal berdasarkan halte" />
           <div className={`grid gap-4 ${showScheduleForm ? "lg:grid-cols-[260px_minmax(0,1fr)_340px]" : "lg:grid-cols-[260px_minmax(0,1fr)]"}`}>
-            {/* Pilih halte */}
             <div className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-sm font-black uppercase tracking-wide text-slate-500">Pilih halte</p>
               <div className="mt-3 grid gap-2">
@@ -345,18 +424,20 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Daftar jadwal */}
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-black uppercase tracking-wide text-slate-500">Daftar jadwal</p>
                   <h3 className="mt-1 text-2xl font-black text-slate-950">{manageStop?.name ?? "Pilih halte"}</h3>
                 </div>
-                <button className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white" type="button"
+                <button
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white hover:bg-blue-800 transition-colors"
+                  type="button"
                   onClick={() => {
                     setScheduleForm({ ...blankSchedule, stop_id: manageStop?.id ?? "" });
                     setShowScheduleForm(true);
-                  }}>
+                  }}
+                >
                   <Plus size={17} />Tambah jam
                 </button>
               </div>
@@ -365,7 +446,10 @@ export default function AdminPage() {
                   const nextStop = localStopMap[manageStop?.next_stop_id];
                   const editing = scheduleForm.id === schedule.id;
                   return (
-                    <article className={`rounded-xl border p-4 ${editing ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"}`} key={schedule.id}>
+                    <article
+                      className={`rounded-xl border p-4 ${editing ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"}`}
+                      key={schedule.id}
+                    >
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <strong className="inline-flex items-center gap-2 text-3xl font-black text-slate-950">
@@ -373,19 +457,28 @@ export default function AdminPage() {
                             {schedule.departure_time?.slice(0, 5)}
                           </strong>
                           <p className="mt-2 font-bold text-slate-600">Menuju {nextStop?.name ?? "halte berikutnya"}</p>
-                          {schedule.note ? <p className="mt-1 text-sm text-slate-500">{schedule.note}</p> : null}
+                          {schedule.note && <p className="mt-1 text-sm text-slate-500">{schedule.note}</p>}
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          <button className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-black text-slate-700" type="button"
-                            onClick={() => { setScheduleForm({ ...schedule, departure_time: schedule.departure_time?.slice(0, 5) }); setShowScheduleForm(true); }}>
+                          <button
+                            className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-black text-slate-700 hover:bg-slate-200 transition-colors"
+                            type="button"
+                            onClick={() => { setScheduleForm({ ...schedule, departure_time: schedule.departure_time?.slice(0, 5) }); setShowScheduleForm(true); }}
+                          >
                             Edit
                           </button>
                           <button
-                            className={`rounded-lg px-3 py-2 text-sm font-black ${schedule.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"}`}
-                            type="button" onClick={() => toggleScheduleStatus(schedule)}>
+                            className={`rounded-lg px-3 py-2 text-sm font-black transition-colors ${schedule.status === "active" ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+                            type="button"
+                            onClick={() => toggleScheduleStatus(schedule)}
+                          >
                             {schedule.status === "active" ? "Aktif" : "Nonaktif"}
                           </button>
-                          <button className="rounded-lg bg-red-50 px-3 py-2 text-sm font-black text-red-700" type="button" onClick={() => deleteSchedule(schedule.id)}>
+                          <button
+                            className="rounded-lg bg-red-50 px-3 py-2 text-sm font-black text-red-700 hover:bg-red-100 transition-colors"
+                            type="button"
+                            onClick={() => deleteSchedule(schedule.id)}
+                          >
                             <Trash2 size={16} aria-hidden="true" />
                           </button>
                         </div>
@@ -393,16 +486,15 @@ export default function AdminPage() {
                     </article>
                   );
                 })}
-                {!manageSchedules.length ? (
+                {!manageSchedules.length && (
                   <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center font-bold text-slate-500">
                     Belum ada jadwal untuk halte ini.
                   </div>
-                ) : null}
+                )}
               </div>
             </div>
 
-            {/* Form jadwal */}
-            {showScheduleForm ? (
+            {showScheduleForm && (
               <form className="h-fit rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" onSubmit={saveSchedule}>
                 <p className="text-sm font-black uppercase tracking-wide text-slate-500">
                   {scheduleForm.id ? "Edit jadwal" : "Tambah jadwal"}
@@ -410,35 +502,51 @@ export default function AdminPage() {
                 <h3 className="mt-1 text-2xl font-black text-slate-950">{scheduleForm.departure_time || "Jam baru"}</h3>
                 <label className="mt-5 block font-bold text-slate-600">
                   Halte keberangkatan
-                  <select className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-semibold outline-none focus:border-blue-500"
+                  <select
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-semibold outline-none focus:border-blue-500"
                     value={scheduleForm.stop_id || manageStop?.id || ""}
-                    onChange={(e) => setScheduleForm({ ...scheduleForm, stop_id: e.target.value })}>
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, stop_id: e.target.value })}
+                  >
                     {sortedStops.map((stop) => <option key={stop.id} value={stop.id}>{stop.name}</option>)}
                   </select>
                 </label>
                 <label className="mt-4 block font-bold text-slate-600">
                   Jam keberangkatan
-                  <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 text-2xl font-black text-slate-950 outline-none focus:border-blue-500"
-                    type="time" value={scheduleForm.departure_time}
-                    onChange={(e) => setScheduleForm({ ...scheduleForm, departure_time: e.target.value })} required />
+                  <input
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 text-2xl font-black text-slate-950 outline-none focus:border-blue-500"
+                    type="time"
+                    value={scheduleForm.departure_time}
+                    onChange={(e) => setScheduleForm({ ...scheduleForm, departure_time: e.target.value })}
+                    required
+                  />
                 </label>
                 <label className="mt-4 block font-bold text-slate-600">
                   Catatan (opsional)
-                  <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                  <input
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
                     value={scheduleForm.note || ""}
                     onChange={(e) => setScheduleForm({ ...scheduleForm, note: e.target.value })}
-                    placeholder="Jadwal pagi, reguler, dll." />
+                    placeholder="Jadwal pagi, reguler, dll."
+                  />
                 </label>
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white" type="submit" disabled={saving}>
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white hover:bg-blue-800 transition-colors disabled:opacity-60"
+                    type="submit"
+                    disabled={saving}
+                  >
                     <Save size={17} />{saving ? "Menyimpan..." : "Simpan"}
                   </button>
-                  <button className="rounded-xl border border-slate-200 px-4 py-3 font-black text-slate-700" type="button" onClick={() => setShowScheduleForm(false)}>
+                  <button
+                    className="rounded-xl border border-slate-200 px-4 py-3 font-black text-slate-700 hover:bg-slate-50 transition-colors"
+                    type="button"
+                    onClick={() => setShowScheduleForm(false)}
+                  >
                     Tutup
                   </button>
                 </div>
               </form>
-            ) : null}
+            )}
           </div>
         </section>
 
@@ -446,8 +554,11 @@ export default function AdminPage() {
         <section className="mt-10" id="halte">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <SectionTitle eyebrow="Halte" title="Kelola titik halte pada peta" />
-            <button className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white" type="button"
-              onClick={() => { setStopForm({ ...blankStop, stop_order: sortedStops.length + 1 }); setShowStopForm(true); }}>
+            <button
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white hover:bg-blue-800 transition-colors"
+              type="button"
+              onClick={() => { setStopForm({ ...blankStop, stop_order: sortedStops.length + 1 }); setShowStopForm(true); }}
+            >
               <Plus size={17} />Tambah halte
             </button>
           </div>
@@ -466,7 +577,7 @@ export default function AdminPage() {
               ))}
             </div>
 
-            {showStopForm ? (
+            {showStopForm && (
               <form className="h-fit rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" onSubmit={saveStop}>
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div>
@@ -475,65 +586,111 @@ export default function AdminPage() {
                     </p>
                     <h3 className="mt-1 text-2xl font-black text-slate-950">{stopForm.name || "Halte baru"}</h3>
                   </div>
-                  <button className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-black text-slate-600" type="button" onClick={() => setShowStopForm(false)}>
+                  <button
+                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-50 transition-colors"
+                    type="button"
+                    onClick={() => setShowStopForm(false)}
+                  >
                     Tutup
                   </button>
                 </div>
                 <label className="block font-bold text-slate-600">
                   Nama halte
-                  <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-                    value={stopForm.name} onChange={(e) => setStopForm({ ...stopForm, name: e.target.value })} placeholder="Nama halte" required />
+                  <input
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                    value={stopForm.name}
+                    onChange={(e) => setStopForm({ ...stopForm, name: e.target.value })}
+                    placeholder="Nama halte"
+                    required
+                  />
                 </label>
                 <label className="mt-4 block font-bold text-slate-600">
                   Urutan
-                  <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-                    type="number" min="1" value={stopForm.stop_order}
-                    onChange={(e) => setStopForm({ ...stopForm, stop_order: e.target.value })} />
+                  <input
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                    type="number"
+                    min="1"
+                    value={stopForm.stop_order}
+                    onChange={(e) => setStopForm({ ...stopForm, stop_order: e.target.value })}
+                  />
                 </label>
                 <label className="mt-4 block font-bold text-slate-600">
                   Halte berikutnya
-                  <select className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-semibold outline-none focus:border-blue-500"
+                  <select
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-semibold outline-none focus:border-blue-500"
                     value={stopForm.next_stop_id || ""}
-                    onChange={(e) => setStopForm({ ...stopForm, next_stop_id: e.target.value || null })}>
+                    onChange={(e) => setStopForm({ ...stopForm, next_stop_id: e.target.value || null })}
+                  >
                     <option value="">-- Pilih halte berikutnya --</option>
-                    {sortedStops.filter((s) => s.id !== stopForm.id).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {sortedStops.filter((s) => s.id !== stopForm.id).map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
                   </select>
                 </label>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <label className="block font-bold text-slate-600">
                     Latitude
-                    <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-                      type="number" step="0.000001" value={stopForm.lat}
-                      onChange={(e) => setStopForm({ ...stopForm, lat: e.target.value })} placeholder="-7.5606" />
+                    <input
+                      className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                      type="number"
+                      step="0.000001"
+                      value={stopForm.lat}
+                      onChange={(e) => setStopForm({ ...stopForm, lat: e.target.value })}
+                      placeholder="-7.5606"
+                    />
                   </label>
                   <label className="block font-bold text-slate-600">
                     Longitude
-                    <input className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-                      type="number" step="0.000001" value={stopForm.lng}
-                      onChange={(e) => setStopForm({ ...stopForm, lng: e.target.value })} placeholder="110.8592" />
+                    <input
+                      className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                      type="number"
+                      step="0.000001"
+                      value={stopForm.lng}
+                      onChange={(e) => setStopForm({ ...stopForm, lng: e.target.value })}
+                      placeholder="110.8592"
+                    />
                   </label>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-3">
-                  <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white" type="submit" disabled={saving}>
+                  <button
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white hover:bg-blue-800 transition-colors disabled:opacity-60"
+                    type="submit"
+                    disabled={saving}
+                  >
                     <Save size={17} />{saving ? "Menyimpan..." : "Simpan halte"}
                   </button>
                 </div>
               </form>
-            ) : null}
+            )}
           </div>
         </section>
 
         {/* ── PENGUMUMAN ── */}
         <section className="mt-10" id="pengumuman">
           <SectionTitle eyebrow="Pengumuman" title="Kelola info operasional" />
-          <form className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_2fr_auto]" onSubmit={saveAnnouncement}>
-            <input className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-              value={announcementForm.title} onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
-              placeholder="Judul" required />
-            <textarea className="min-h-12 rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
-              value={announcementForm.content} onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
-              placeholder="Isi pengumuman" required />
-            <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white" type="submit" disabled={saving}>
+          <form
+            className="mb-4 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[1fr_2fr_auto]"
+            onSubmit={saveAnnouncement}
+          >
+            <input
+              className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+              value={announcementForm.title}
+              onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+              placeholder="Judul"
+              required
+            />
+            <textarea
+              className="min-h-12 rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+              value={announcementForm.content}
+              onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
+              placeholder="Isi pengumuman"
+              required
+            />
+            <button
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-700 px-4 py-3 font-black text-white hover:bg-blue-800 transition-colors disabled:opacity-60"
+              type="submit"
+              disabled={saving}
+            >
               <Save size={17} />{saving ? "..." : "Simpan"}
             </button>
           </form>

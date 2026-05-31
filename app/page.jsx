@@ -18,28 +18,36 @@ const RealLeafletMap = dynamic(() => import("@/components/RealLeafletMap"), {
 });
 
 export default function HomePage() {
-  const { stops, schedules, announcements, operationalStatus, stopMap } = useBusData();
+  const { stops, schedules, announcements, operationalStatus, stopMap, loading } = useBusData();
   const [query, setQuery] = useState("");
   const [selectedStopId, setSelectedStopId] = useState("");
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [mobilePanelClosing, setMobilePanelClosing] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
+  // ✅ Pakai stop_order (bukan order)
   const sortedStops = useMemo(
-    () => stops.filter((stop) => stop.status === "active").sort((a, b) => Number(a.order) - Number(b.order)),
+    () => stops.filter((stop) => stop.status === "active").sort((a, b) => Number(a.stop_order) - Number(b.stop_order)),
     [stops],
   );
+
   const selectedStop = stopMap[selectedStopId] ?? sortedStops[0];
+
+  // ✅ Pakai stop_id dan departure_time (bukan stopId dan time)
   const selectedSchedules = schedules
-    .filter((schedule) => schedule.status === "active" && schedule.stopId === selectedStop?.id)
-    .sort((a, b) => a.time.localeCompare(b.time));
-  const nextStop = stopMap[selectedSchedules[0]?.nextStopId];
+    .filter((schedule) => schedule.status === "active" && schedule.stop_id === selectedStop?.id)
+    .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
+
+  // ✅ Pakai next_stop_id (bukan nextStopId)
+  const nextStop = stopMap[selectedStop?.next_stop_id];
+
   const nextGlobalSchedule = useMemo(() => {
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
     const activeSchedules = schedules
-      .filter((schedule) => schedule.status === "active" && stopMap[schedule.stopId]?.status === "active")
+      .filter((schedule) => schedule.status === "active" && stopMap[schedule.stop_id]?.status === "active")
       .map((schedule) => {
-        const [hour, minute] = schedule.time.split(".").map(Number);
+        // ✅ Pakai departure_time dan split ":" (bukan ".")
+        const [hour, minute] = schedule.departure_time.split(":").map(Number);
         const scheduleMinutes = hour * 60 + minute;
         const minutesUntil =
           scheduleMinutes >= currentMinutes
@@ -48,12 +56,14 @@ export default function HomePage() {
 
         return { ...schedule, minutesUntil };
       })
-      .sort((a, b) => a.minutesUntil - b.minutesUntil || a.time.localeCompare(b.time));
+      .sort((a, b) => a.minutesUntil - b.minutesUntil || a.departure_time.localeCompare(b.departure_time));
 
     return activeSchedules[0];
   }, [now, schedules, stopMap]);
-  const nextGlobalStop = stopMap[nextGlobalSchedule?.stopId];
-  const nextGlobalNextStop = stopMap[nextGlobalSchedule?.nextStopId];
+
+  // ✅ Pakai stop_id dan next_stop_id
+  const nextGlobalStop = stopMap[nextGlobalSchedule?.stop_id];
+  const nextGlobalNextStop = stopMap[nextGlobalStop?.next_stop_id];
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60 * 1000);
@@ -67,11 +77,12 @@ export default function HomePage() {
     return new Set(
       sortedStops
         .filter((stop) => {
-          const stopSchedules = schedules.filter((schedule) => schedule.stopId === stop.id);
+          // ✅ Pakai stop_id dan departure_time
+          const stopSchedules = schedules.filter((schedule) => schedule.stop_id === stop.id);
           const text = [
             stop.name,
             stop.area,
-            ...stopSchedules.map((schedule) => schedule.time),
+            ...stopSchedules.map((schedule) => schedule.departure_time),
           ]
             .join(" ")
             .toLowerCase();
@@ -95,6 +106,14 @@ export default function HomePage() {
       setMobilePanelOpen(false);
       setMobilePanelClosing(false);
     }, 380);
+  }
+
+  if (loading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-slate-50 font-semibold text-slate-600">
+        Menghubungkan ke database dan memuat data...
+      </div>
+    );
   }
 
   return (
@@ -125,7 +144,12 @@ export default function HomePage() {
             <>
               <p className="text-sm font-black uppercase tracking-wide text-slate-500">Jadwal berikutnya</p>
               <h2 className="mt-2 text-4xl font-black text-slate-950">{nextGlobalStop?.name ?? "-"}</h2>
-              <strong className="mt-5 block text-7xl font-black leading-none text-blue-700">{nextGlobalSchedule?.time ?? "--.--"}</strong>
+              {/* ✅ Pakai departure_time */}
+              <strong className="mt-5 block text-7xl font-black leading-none text-blue-700">
+                {nextGlobalSchedule?.departure_time
+                  ? nextGlobalSchedule.departure_time.slice(0, 5)
+                  : "--.--"}
+              </strong>
               <p className="mt-4 text-lg font-bold text-slate-600">Halte berikutnya: {nextGlobalNextStop?.name ?? "-"}</p>
             </>
           ) : (
@@ -149,7 +173,7 @@ export default function HomePage() {
         </section>
       ) : null}
 
-      <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-6">
+      <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-6" id="peta">
         <div className="flex min-h-16 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 shadow-sm">
           <Search size={20} className="text-slate-400" aria-hidden="true" />
           <input

@@ -15,8 +15,10 @@ export default function StopSchedulePanel({
   const now = currentTime ?? new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  function hasSchedulePassed(time) {
-    const [hour, minute] = time.split(".").map(Number);
+  // ✅ Pakai ":" bukan "."
+  function hasSchedulePassed(departure_time) {
+    if (!departure_time) return false;
+    const [hour, minute] = departure_time.split(":").map(Number);
     if (!Number.isFinite(hour) || !Number.isFinite(minute)) return false;
     return hour * 60 + minute < currentMinutes;
   }
@@ -72,7 +74,8 @@ export default function StopSchedulePanel({
         </p>
         <div className="mt-3 grid grid-cols-3 gap-2">
           {schedules.map((schedule) => {
-            const passed = hasSchedulePassed(schedule.time);
+            // ✅ Pakai departure_time
+            const passed = hasSchedulePassed(schedule.departure_time);
 
             return (
               <span
@@ -81,7 +84,8 @@ export default function StopSchedulePanel({
                 }`}
                 key={schedule.id}
               >
-                {schedule.time}
+                {/* ✅ Tampilkan HH:MM saja */}
+                {schedule.departure_time?.slice(0, 5) ?? "-"}
               </span>
             );
           })}

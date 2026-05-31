@@ -1,62 +1,63 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  initialAnnouncements,
-  initialOperationalStatus,
-  initialSchedules,
-  initialStops,
-} from "@/data/dummyData";
-
-const storageKey = "busuns-data-map-v4";
-
-function normalizeStops(storedStops) {
-  if (!storedStops?.length) return initialStops;
-
-  const storedById = Object.fromEntries(storedStops.map((stop) => [stop.id, stop]));
-  return initialStops.map((initialStop) => {
-    const storedStop = storedById[initialStop.id] ?? {};
-
-    return {
-      ...initialStop,
-      ...storedStop,
-      order: Number(storedStop.order ?? initialStop.order),
-      lat: Number(storedStop.lat ?? initialStop.lat),
-      lng: Number(storedStop.lng ?? initialStop.lng),
-    };
-  });
-}
+// Ganti baris 4 di useBusData.js menjadi ini:
+import { supabase } from "../lib/supabaseClient";
 
 export function useBusData() {
-  const [stops, setStops] = useState(initialStops);
-  const [schedules, setSchedules] = useState(initialSchedules);
-  const [announcements, setAnnouncements] = useState(initialAnnouncements);
-  const [operationalStatus, setOperationalStatus] = useState(initialOperationalStatus);
+  const [stops, setStops] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [operationalStatus, setOperationalStatus] = useState({ isOperating: true, message: "" });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(storageKey);
-    if (!stored) return;
+    async function fetchData() {
+      try {
+        setLoading(true);
 
-    try {
-      const parsed = JSON.parse(stored);
-      setStops(normalizeStops(parsed.stops));
-      setSchedules(parsed.schedules?.length ? parsed.schedules : initialSchedules);
-      setAnnouncements(
-        parsed.announcements?.length ? parsed.announcements : initialAnnouncements,
-      );
-      setOperationalStatus(parsed.operationalStatus ?? initialOperationalStatus);
-    } catch {
-      window.localStorage.removeItem(storageKey);
+        // 1. Ambil data dari tabel 'stops'
+        const { data: stopsData, error: stopsError } = await supabase
+          .from("stops")
+          .select("*");
+        
+        console.log("STOPS DATA:", stopsData);  // ← tambah ini
+         console.log("STOPS ERROR:", stopsError); // ← tambah ini
+
+        if (stopsError) throw stopsError;
+
+        // 2. Ambil data dari tabel 'schedules'
+        const { data: schedulesData, error: schedulesError } = await supabase
+          .from("schedules")
+          .select("*");
+        if (schedulesError) throw schedulesError;
+
+        // 3. Ambil data dari tabel 'announcements'
+        const { data: announcementsData, error: announcementsError } = await supabase
+          .from("announcements")
+          .select("*");
+        if (announcementsError) throw announcementsError;
+
+        // Set state dengan data dari database
+        setStops(stopsData || []);
+        setSchedules(schedulesData || []);
+        setAnnouncements(announcementsData || []);
+        
+        // Catatan: Untuk operationalStatus, jika Anda belum membuat tabel khusus di Supabase,
+        // nilainya akan tetap menggunakan default bawaan (true).
+        setOperationalStatus({ isOperating: true, message: "" });
+
+      } catch (error) {
+        console.error("Gagal mengambil data dari Supabase:", error.message);
+      } finally {
+        setLoading(false);
+      }
     }
+
+    fetchData();
   }, []);
 
-  useEffect(() => {
-    window.localStorage.setItem(
-      storageKey,
-      JSON.stringify({ stops, schedules, announcements, operationalStatus }),
-    );
-  }, [stops, schedules, announcements, operationalStatus]);
-
+  // Membaut map dari data stops berdasarkan ID untuk mempermudah pencarian data di UI
   const stopMap = useMemo(
     () => Object.fromEntries(stops.map((stop) => [stop.id, stop])),
     [stops],
@@ -68,6 +69,7 @@ export function useBusData() {
     announcements,
     operationalStatus,
     stopMap,
+    loading,              // Ekspor variabel loading untuk digunakan di HomePage
     setStops,
     setSchedules,
     setAnnouncements,

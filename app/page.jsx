@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { ArrowRight, Info, Search } from "lucide-react";
+import { ArrowRight, Bus, Info, MapPin, Search } from "lucide-react";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import Navbar from "@/components/Navbar";
 import StopSchedulePanel from "@/components/StopSchedulePanel";
@@ -25,7 +25,6 @@ export default function HomePage() {
   const [mobilePanelClosing, setMobilePanelClosing] = useState(false);
   const [now, setNow] = useState(() => new Date());
 
-  // ✅ Pakai stop_order (bukan order)
   const sortedStops = useMemo(
     () => stops.filter((stop) => stop.status === "active").sort((a, b) => Number(a.stop_order) - Number(b.stop_order)),
     [stops],
@@ -33,12 +32,10 @@ export default function HomePage() {
 
   const selectedStop = stopMap[selectedStopId] ?? sortedStops[0];
 
-  // ✅ Pakai stop_id dan departure_time (bukan stopId dan time)
   const selectedSchedules = schedules
     .filter((schedule) => schedule.status === "active" && schedule.stop_id === selectedStop?.id)
     .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
 
-  // ✅ Pakai next_stop_id (bukan nextStopId)
   const nextStop = stopMap[selectedStop?.next_stop_id];
 
   const nextGlobalSchedule = useMemo(() => {
@@ -46,14 +43,12 @@ export default function HomePage() {
     const activeSchedules = schedules
       .filter((schedule) => schedule.status === "active" && stopMap[schedule.stop_id]?.status === "active")
       .map((schedule) => {
-        // ✅ Pakai departure_time dan split ":" (bukan ".")
         const [hour, minute] = schedule.departure_time.split(":").map(Number);
         const scheduleMinutes = hour * 60 + minute;
         const minutesUntil =
           scheduleMinutes >= currentMinutes
             ? scheduleMinutes - currentMinutes
             : scheduleMinutes + 24 * 60 - currentMinutes;
-
         return { ...schedule, minutesUntil };
       })
       .sort((a, b) => a.minutesUntil - b.minutesUntil || a.departure_time.localeCompare(b.departure_time));
@@ -61,7 +56,6 @@ export default function HomePage() {
     return activeSchedules[0];
   }, [now, schedules, stopMap]);
 
-  // ✅ Pakai stop_id dan next_stop_id
   const nextGlobalStop = stopMap[nextGlobalSchedule?.stop_id];
   const nextGlobalNextStop = stopMap[nextGlobalStop?.next_stop_id];
 
@@ -77,7 +71,6 @@ export default function HomePage() {
     return new Set(
       sortedStops
         .filter((stop) => {
-          // ✅ Pakai stop_id dan departure_time
           const stopSchedules = schedules.filter((schedule) => schedule.stop_id === stop.id);
           const text = [
             stop.name,
@@ -91,6 +84,11 @@ export default function HomePage() {
         .map((stop) => stop.id),
     );
   }, [query, schedules, sortedStops]);
+
+  const matchingStops = useMemo(
+    () => sortedStops.filter((stop) => matchingStopIds.has(stop.id)),
+    [sortedStops, matchingStopIds],
+  );
 
   const activeAnnouncements = announcements.filter((announcement) => announcement.status === "active");
 
@@ -108,6 +106,11 @@ export default function HomePage() {
     }, 380);
   }
 
+  function handleSelectFromSearch(stopId) {
+    selectStop(stopId);
+    setQuery("");
+  }
+
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-slate-50 font-semibold text-slate-600">
@@ -115,6 +118,8 @@ export default function HomePage() {
       </div>
     );
   }
+
+  const showDropdown = query.trim().length > 0;
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -144,7 +149,6 @@ export default function HomePage() {
             <>
               <p className="text-sm font-black uppercase tracking-wide text-slate-500">Jadwal berikutnya</p>
               <h2 className="mt-2 text-4xl font-black text-slate-950">{nextGlobalStop?.name ?? "-"}</h2>
-              {/* ✅ Pakai departure_time */}
               <strong className="mt-5 block text-7xl font-black leading-none text-blue-700">
                 {nextGlobalSchedule?.departure_time
                   ? nextGlobalSchedule.departure_time.slice(0, 5)
@@ -164,28 +168,75 @@ export default function HomePage() {
         </div>
       </section>
 
-      {!operationalStatus?.isOperating ? (
+      {!operationalStatus?.isOperating && (
         <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-6">
           <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-900">
             <strong className="block text-lg">Bus sedang tidak beroperasi.</strong>
             <p className="mt-1 font-semibold">{operationalStatus?.message}</p>
           </div>
         </section>
-      ) : null}
+      )}
 
-      <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-6" id="peta">
-        <div className="flex min-h-16 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 shadow-sm">
-          <Search size={20} className="text-slate-400" aria-hidden="true" />
-          <input
-            className="w-full border-0 bg-transparent text-base font-semibold text-slate-800 outline-none placeholder:text-slate-400"
-            type="search"
-            placeholder="Cari halte. Contoh: Teknik, Rektorat, FSRD"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
+      {/* ── SEARCH ── */}
+      <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-3" id="peta">
+        <div className="relative">
+          <div className={`flex min-h-16 items-center gap-3 border border-slate-200 bg-white px-5 shadow-sm transition-all ${showDropdown ? "rounded-t-2xl border-b-slate-100" : "rounded-2xl"}`}>
+            <Search size={20} className="shrink-0 text-slate-400" aria-hidden="true" />
+            <input
+              className="w-full border-0 bg-transparent text-base font-semibold text-slate-800 outline-none placeholder:text-slate-400"
+              type="search"
+              placeholder="Cari halte. Contoh: FISIP, Teknik, Rektorat"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+            {query && (
+              <button
+                className="shrink-0 rounded-lg px-2 py-1 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
+                type="button"
+                onClick={() => setQuery("")}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Dropdown hasil search */}
+          {showDropdown && (
+            <div className="absolute left-0 right-0 z-50 overflow-hidden rounded-b-2xl border border-t-0 border-slate-200 bg-white shadow-lg">
+              {matchingStops.length > 0 ? (
+                matchingStops.map((stop) => (
+                  <button
+                    key={stop.id}
+                    className="flex w-full items-center gap-3 border-b border-slate-100 px-5 py-3 text-left transition-colors last:border-0 hover:bg-blue-50"
+                    type="button"
+                    onClick={() => handleSelectFromSearch(stop.id)}
+                  >
+                    <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-700">
+                      <Bus size={17} aria-hidden="true" />
+                    </span>
+                    <span className="min-w-0">
+                      <strong className="block font-black text-slate-950">{stop.name}</strong>
+                      <small className="flex items-center gap-1 text-sm font-semibold text-slate-500">
+                        <MapPin size={12} aria-hidden="true" />
+                        {stop.area}
+                      </small>
+                    </span>
+                    <span className="ml-auto shrink-0 text-sm font-black text-blue-700">
+                      {schedules.filter((s) => s.status === "active" && s.stop_id === stop.id).length} jadwal
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-5 py-4 font-semibold text-slate-500">
+                  Halte &quot;{query}&quot; tidak ditemukan.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
+      {/* ── PETA ── */}
       <section className="mx-auto grid w-[min(1180px,calc(100%-32px))] gap-5 pb-16 md:grid-cols-[minmax(0,1fr)_360px]">
         <RealLeafletMap
           stops={sortedStops}
@@ -202,7 +253,7 @@ export default function HomePage() {
         />
       </section>
 
-      {mobilePanelOpen ? (
+      {mobilePanelOpen && (
         <>
           <button
             className={`fixed inset-0 z-[900] bg-slate-950/30 backdrop-blur-sm md:hidden ${
@@ -223,8 +274,9 @@ export default function HomePage() {
             onClose={closeMobilePanel}
           />
         </>
-      ) : null}
+      )}
 
+      {/* ── PENGUMUMAN ── */}
       <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-20" id="pengumuman">
         <div className="mb-5 flex items-end justify-between gap-4">
           <div>

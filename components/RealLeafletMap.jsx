@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 
@@ -96,19 +96,37 @@ function RouteDirectionArrows({ positions }) {
   ));
 }
 
+// Fit ke seluruh rute hanya sekali saat pertama load
 function FitRouteBounds({ positions }) {
+  const map = useMap();
+  const fitted = useRef(false);
+
+  useEffect(() => {
+    if (fitted.current || positions.length < 2) return;
+    map.fitBounds(positions, { padding: [36, 36], maxZoom: 16 });
+    fitted.current = true;
+  }, [map, positions]);
+
+  return null;
+}
+
+// Zoom in ke halte yang dipilih, tanpa zoom out
+function FlyToSelected({ stop }) {
   const map = useMap();
 
   useEffect(() => {
-    if (positions.length < 2) return;
-    map.fitBounds(positions, { padding: [36, 36], maxZoom: 16 });
-  }, [map, positions]);
+    if (!stop) return;
+    const currentZoom = map.getZoom();
+    const targetZoom = Math.max(currentZoom, 18); // zoom in, tidak pernah zoom out
+    map.flyTo([stop.lat, stop.lng], targetZoom, { duration: 0.8 });
+  }, [map, stop]);
 
   return null;
 }
 
 export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds, onSelectStop }) {
   const matchedIds = matchingStopIds ?? new Set();
+
   const mappedStops = useMemo(
     () =>
       stops
@@ -120,8 +138,11 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
         .filter((stop) => Number.isFinite(stop.lat) && Number.isFinite(stop.lng)),
     [stops],
   );
+
   const routePositions = mappedStops.map((stop) => [stop.lat, stop.lng]);
   const center = routePositions[0] ?? defaultCenter;
+
+  const selectedStop = mappedStops.find((stop) => stop.id === selectedStopId) ?? null;
 
   return (
     <section className="relative z-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70" id="peta">
@@ -163,6 +184,7 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
           );
         })}
         <FitRouteBounds positions={routePositions} />
+        <FlyToSelected stop={selectedStop} />
       </MapContainer>
     </section>
   );

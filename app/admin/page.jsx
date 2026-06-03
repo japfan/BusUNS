@@ -185,7 +185,9 @@ export default function AdminPage() {
     setSaving(true);
     const payload = {
       name: stopForm.name,
-      stop_order: Number(stopForm.stop_order) || sortedStops.length + 1,
+      stop_order: stopForm.stop_order !== "" && stopForm.stop_order !== undefined
+        ? Number(stopForm.stop_order) 
+        : (sortedStops[sortedStops.length - 1]?.stop_order ?? 0) + 1,
       lat: Number(stopForm.lat) || -7.5606,
       lng: Number(stopForm.lng) || 110.8592,
       next_stop_id: stopForm.next_stop_id || null,

@@ -22,7 +22,7 @@ export default function StopCard({ stop, active, scheduleCount = 0, onSelect, on
             <MapPin size={14} aria-hidden="true" />
             {stop.area}
           </small>
-          <small className="mt-1 block text-sm font-semibold text-slate-500">Urutan {stop.order}</small>
+          <small className="mt-1 block text-sm font-semibold text-slate-500">Urutan {stop.stop_order ?? "-"}</small>
           <em className="mt-2 block text-sm font-black not-italic text-blue-700">{scheduleCount} jadwal tersedia</em>
         </span>
       </button>

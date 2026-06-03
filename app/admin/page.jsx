@@ -181,40 +181,54 @@ export default function AdminPage() {
 
   // ─── STOP CRUD ───────────────────────────────────────────────────
   async function saveStop(event) {
-    event.preventDefault();
-    setSaving(true);
-    const payload = {
-      name: stopForm.name,
-      stop_order: stopForm.stop_order !== "" && stopForm.stop_order !== undefined
-        ? Number(stopForm.stop_order) 
-        : (sortedStops[sortedStops.length - 1]?.stop_order ?? 0) + 1,
-      lat: Number(stopForm.lat) || -7.5606,
-      lng: Number(stopForm.lng) || 110.8592,
-      next_stop_id: stopForm.next_stop_id || null,
-      status: stopForm.status,
-    };
+  event.preventDefault();
+  setSaving(true);
 
-    if (stopForm.id) {
-      const { error } = await supabase.from("stops").update(payload).eq("id", stopForm.id);
-      if (error) showToast("Gagal update halte: " + error.message);
-      else {
-        setLocalStops((items) => items.map((item) => item.id === stopForm.id ? { ...item, ...payload } : item));
-        showToast("Halte berhasil diupdate!");
-      }
-    } else {
-      const newId = "halte_" + stopForm.name.toLowerCase().replaceAll(" ", "_");
-      const { data, error } = await supabase.from("stops").insert({ id: newId, ...payload }).select().single();
-      if (error) showToast("Gagal tambah halte: " + error.message);
-      else {
-        setLocalStops((items) => [data, ...items]);
-        showToast("Halte berhasil ditambahkan!");
-      }
-    }
+  const targetOrder = stopForm.stop_order !== "" && stopForm.stop_order !== undefined
+    ? Number(stopForm.stop_order) 
+    : (sortedStops[sortedStops.length - 1]?.stop_order ?? 0) + 1;
 
-    setStopForm({ ...blankStop, stop_order: sortedStops.length + 2 });
-    setShowStopForm(false);
+  const isDuplicate = localStops.some(
+    (stop) => Number(stop.stop_order) === targetOrder && stop.id !== stopForm.id
+  );
+
+  if (isDuplicate) {
+    showToast(`Gagal: Nomor urutan ${targetOrder} sudah digunakan oleh halte lain!`);
     setSaving(false);
+    return;
   }
+
+  const payload = {
+    name: stopForm.name,
+    stop_order: targetOrder,
+    lat: Number(stopForm.lat) || -7.5606,
+    lng: Number(stopForm.lng) || 110.8592,
+    next_stop_id: stopForm.next_stop_id || null,
+    status: stopForm.status,
+  };
+
+  if (stopForm.id) {
+    const { error } = await supabase.from("stops").update(payload).eq("id", stopForm.id);
+    if (error) showToast("Gagal update halte: " + error.message);
+    else {
+      setLocalStops((items) => items.map((item) => item.id === stopForm.id ? { ...item, ...payload } : item));
+      showToast("Halte berhasil diupdate!");
+      setShowStopForm(false);
+    }
+  } else {
+    const newId = "halte_" + stopForm.name.toLowerCase().replaceAll(" ", "_");
+    const { data, error } = await supabase.from("stops").insert({ id: newId, ...payload }).select().single();
+    if (error) showToast("Gagal tambah halte: " + error.message);
+    else {
+      setLocalStops((items) => [data, ...items]);
+      showToast("Halte berhasil ditambahkan!");
+      setShowStopForm(false);
+    }
+  }
+
+  setStopForm({ ...blankStop, stop_order: sortedStops.length + 2 });
+  setSaving(false);
+}
 
   async function deleteStop(id) {
     const { error } = await supabase.from("stops").delete().eq("id", id);

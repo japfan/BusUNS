@@ -53,7 +53,7 @@ export default function AdminPage() {
       setAuthLoading(false);
     });
 
-    // Listen perubahan auth (login/logout dari tab lain, token expired, dll)
+    // Listen perubahan auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setLoggedIn(!!session);
     });
@@ -74,14 +74,11 @@ export default function AdminPage() {
     if (error) {
       setError("Login gagal: " + error.message);
     }
-    // setLoggedIn ditangani oleh onAuthStateChange di atas
-
     setLoginLoading(false);
   }
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    // setLoggedIn(false) ditangani oleh onAuthStateChange
   }
 
   // ─── LOCAL STATE ──────────────────────────────────────────────────
@@ -98,11 +95,21 @@ export default function AdminPage() {
   const [showStopForm, setShowStopForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState("");
+  
+  // State untuk menampung teks alasan yang diketik admin
+  const [inputMessage, setInputMessage] = useState("");
 
   useEffect(() => { setLocalStops(stops); }, [stops]);
   useEffect(() => { setLocalSchedules(schedules); }, [schedules]);
   useEffect(() => { setLocalAnnouncements(announcements); }, [announcements]);
-  useEffect(() => { setLocalOperationalStatus(operationalStatus); }, [operationalStatus]);
+  
+  // Sinkronisasi data operasional awal ke local state dan input field
+  useEffect(() => { 
+    setLocalOperationalStatus(operationalStatus); 
+    if (operationalStatus?.message) {
+      setInputMessage(operationalStatus.message);
+    }
+  }, [operationalStatus]);
 
   function showToast(msg) {
     setToast(msg);
@@ -183,54 +190,54 @@ export default function AdminPage() {
 
   // ─── STOP CRUD ───────────────────────────────────────────────────
   async function saveStop(event) {
-  event.preventDefault();
-  setSaving(true);
+    event.preventDefault();
+    setSaving(true);
 
-  const targetOrder = stopForm.stop_order !== "" && stopForm.stop_order !== undefined
-    ? Number(stopForm.stop_order) 
-    : (sortedStops[sortedStops.length - 1]?.stop_order ?? 0) + 1;
+    const targetOrder = stopForm.stop_order !== "" && stopForm.stop_order !== undefined
+      ? Number(stopForm.stop_order) 
+      : (sortedStops[sortedStops.length - 1]?.stop_order ?? 0) + 1;
 
-  const isDuplicate = localStops.some(
-    (stop) => Number(stop.stop_order) === targetOrder && stop.id !== stopForm.id
-  );
+    const isDuplicate = localStops.some(
+      (stop) => Number(stop.stop_order) === targetOrder && stop.id !== stopForm.id
+    );
 
-  if (isDuplicate) {
-    showToast(`Gagal: Nomor urutan ${targetOrder} sudah digunakan oleh halte lain!`);
+    if (isDuplicate) {
+      showToast(`Gagal: Nomor urutan ${targetOrder} sudah digunakan oleh halte lain!`);
+      setSaving(false);
+      return;
+    }
+
+    const payload = {
+      name: stopForm.name,
+      stop_order: targetOrder,
+      lat: Number(stopForm.lat) || -7.5606,
+      lng: Number(stopForm.lng) || 110.8592,
+      next_stop_id: stopForm.next_stop_id || null,
+      status: stopForm.status,
+    };
+
+    if (stopForm.id) {
+      const { error } = await supabase.from("stops").update(payload).eq("id", stopForm.id);
+      if (error) showToast("Gagal update halte: " + error.message);
+      else {
+        setLocalStops((items) => items.map((item) => item.id === stopForm.id ? { ...item, ...payload } : item));
+        showToast("Halte berhasil diupdate!");
+        setShowStopForm(false);
+      }
+    } else {
+      const newId = "halte_" + stopForm.name.toLowerCase().replaceAll(" ", "_");
+      const { data, error } = await supabase.from("stops").insert({ id: newId, ...payload }).select().single();
+      if (error) showToast("Gagal tambah halte: " + error.message);
+      else {
+        setLocalStops((items) => [data, ...items]);
+        showToast("Halte berhasil ditambahkan!");
+        setShowStopForm(false);
+      }
+    }
+
+    setStopForm({ ...blankStop, stop_order: sortedStops.length + 2 });
     setSaving(false);
-    return;
   }
-
-  const payload = {
-    name: stopForm.name,
-    stop_order: targetOrder,
-    lat: Number(stopForm.lat) || -7.5606,
-    lng: Number(stopForm.lng) || 110.8592,
-    next_stop_id: stopForm.next_stop_id || null,
-    status: stopForm.status,
-  };
-
-  if (stopForm.id) {
-    const { error } = await supabase.from("stops").update(payload).eq("id", stopForm.id);
-    if (error) showToast("Gagal update halte: " + error.message);
-    else {
-      setLocalStops((items) => items.map((item) => item.id === stopForm.id ? { ...item, ...payload } : item));
-      showToast("Halte berhasil diupdate!");
-      setShowStopForm(false);
-    }
-  } else {
-    const newId = "halte_" + stopForm.name.toLowerCase().replaceAll(" ", "_");
-    const { data, error } = await supabase.from("stops").insert({ id: newId, ...payload }).select().single();
-    if (error) showToast("Gagal tambah halte: " + error.message);
-    else {
-      setLocalStops((items) => [data, ...items]);
-      showToast("Halte berhasil ditambahkan!");
-      setShowStopForm(false);
-    }
-  }
-
-  setStopForm({ ...blankStop, stop_order: sortedStops.length + 2 });
-  setSaving(false);
-}
 
   async function deleteStop(id) {
     const { error } = await supabase.from("stops").delete().eq("id", id);
@@ -281,25 +288,33 @@ export default function AdminPage() {
     }
   }
 
-  // ─── OPERATIONAL STATUS CRUD ──────────────────────────────────────
-  async function toggleOperationalStatus() {
+  // ─── OPERATIONAL STATUS CRUD ─────────────────────────────────────
+  async function handleSaveOperationalStatus(event) {
+    event.preventDefault();
     setSaving(true);
-    const newStatus = !localOperationalStatus.isOperating;
+
+    const isOperating = localOperationalStatus.isOperating;
+    
     const payload = {
-      is_operating: newStatus,
-      message: localOperationalStatus.message || "Bus beroperasi normal sesuai jadwal.",
+      id: 1,
+      is_operating: isOperating,
+      message: isOperating ? null : (inputMessage.trim() || "Bus sedang tidak beroperasi."),
     };
 
     const { error } = await supabase.from("operational_status").upsert(payload);
-    if (error) showToast("Gagal update status: " + error.message);
-    else {
-      setLocalOperationalStatus({ ...localOperationalStatus, isOperating: newStatus });
-      showToast(`Status bus diubah menjadi ${newStatus ? "Aktif" : "Nonaktif"}`);
+    
+    if (error) {
+      showToast("Gagal update status: " + error.message);
+    } else {
+      setLocalOperationalStatus({ 
+        isOperating: isOperating, 
+        message: payload.message 
+      });
+      showToast("Status operasional bus berhasil disimpan!");
     }
     setSaving(false);
   }
 
-  // ─── LOADING AUTH ─────────────────────────────────────────────────
   if (authLoading) {
     return (
       <div className="grid min-h-screen place-items-center bg-slate-50 font-semibold text-slate-500">
@@ -308,7 +323,6 @@ export default function AdminPage() {
     );
   }
 
-  // ─── LOGIN SCREEN ─────────────────────────────────────────────────
   if (!loggedIn) {
     return (
       <main className="grid min-h-screen place-items-center bg-slate-50 p-6">
@@ -378,7 +392,6 @@ export default function AdminPage() {
     );
   }
 
-  // ─── LOADING DATA ─────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="grid min-h-screen place-items-center bg-slate-50 font-semibold text-slate-600">
@@ -387,7 +400,6 @@ export default function AdminPage() {
     );
   }
 
-  // ─── MAIN ADMIN ───────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-slate-50">
       {toast && (
@@ -435,46 +447,75 @@ export default function AdminPage() {
           <Stat icon={<Megaphone size={18} />} label="Pengumuman Aktif" value={activeAnnouncements.length} />
         </div>
 
-        {/* ── OPERASIONAL ── */}
+        {/* ── OPERASIONAL (MODIFIED TO TOGGLE SWITCH STYLE) ── */}
         <section className="mt-10" id="operasional">
           <SectionTitle eyebrow="OPERASIONAL" title="Status bus hari ini" />
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <form onSubmit={handleSaveOperationalStatus} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex-1">
                 <p className="text-sm font-black uppercase tracking-wide text-slate-500">Status operasional</p>
-                <p className="mt-2 text-lg font-bold text-slate-700">
-                  {localOperationalStatus.isOperating ? "Bus sedang beroperasi" : "Bus tidak beroperasi"}
-                </p>
-                {localOperationalStatus.message && (
-                  <p className="mt-2 text-sm text-slate-600">{localOperationalStatus.message}</p>
-                )}
+                <div className="mt-2 flex items-center gap-2">
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                    localOperationalStatus.isOperating ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                  }`}>
+                    {localOperationalStatus.isOperating ? "Beroperasi" : "Berhenti"}
+                  </span>
+                  <p className="text-lg font-bold text-slate-700">
+                    {localOperationalStatus.isOperating ? "Bus berjalan normal sesuai rute" : "Operasional bus dihentikan sementara"}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-3 sm:flex-col sm:items-end">
-                <label className="flex items-center gap-3 cursor-pointer">
+              
+              {/* TOMBOL GESER KIRI-KANAN (TOGGLE SWITCH STYLE LIKE DARK MODE) */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-slate-500">
+                  {localOperationalStatus.isOperating ? "Aktif" : "Nonaktif"}
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={localOperationalStatus.isOperating}
-                    onChange={toggleOperationalStatus}
+                    onChange={(e) => setLocalOperationalStatus({ ...localOperationalStatus, isOperating: e.target.checked })}
                     disabled={saving}
-                    className="w-5 h-5 accent-emerald-600 cursor-pointer disabled:opacity-60"
+                    className="sr-only peer" // Menyembunyikan checkbox kotak bawaan browser
                   />
-                  <span className="font-bold text-slate-700">
-                    {localOperationalStatus.isOperating ? "Aktif" : "Nonaktif"}
-                  </span>
+                  {/* Background Rel Sakelar Geser */}
+                  <div className="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-600"></div>
                 </label>
-                {localOperationalStatus.isOperating ? (
-                  <div className="rounded-full w-3 h-3 bg-emerald-500" aria-hidden="true" />
-                ) : (
-                  <div className="rounded-full w-3 h-3 bg-red-500" aria-hidden="true" />
-                )}
               </div>
             </div>
-            {localOperationalStatus.isOperating && (
-              <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700 font-semibold">
-                Status aktif: Bus beroperasi. Bus beroperasi normal sesuai jadwal.
+
+            {/* Input alasan hanya muncul apabila sakelar digeser ke kiri (Nonaktif / False) */}
+            {!localOperationalStatus.isOperating ? (
+              <div className="mt-5 border-t border-slate-100 pt-4 animate-fade-in">
+                <label className="block font-bold text-slate-600">
+                  Keterangan / Alasan Bus Berhenti
+                  <textarea
+                    className="mt-2 w-full min-h-[80px] rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 transition-colors font-medium text-slate-800"
+                    placeholder="Contoh: Bus sedang diservis rutin atau Driver sedang istirahat..."
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="mt-4 rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-sm text-emerald-700 font-semibold">
+                Status aktif: Bus beroperasi penuh melayani mahasiswa.
               </div>
             )}
-          </div>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-5 py-2.5 font-black text-white hover:bg-blue-800 transition-colors disabled:opacity-60 shadow-md shadow-blue-100"
+              >
+                <Save size={16} />
+                {saving ? "Menyimpan..." : "Simpan Status"}
+              </button>
+            </div>
+          </form>
         </section>
 
         {/* ── JADWAL ── */}

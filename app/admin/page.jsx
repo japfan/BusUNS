@@ -23,6 +23,7 @@ const blankStop = {
   id: "",
   name: "",
   area: "",
+  location_description: "",
   stop_order: 1,
   lat: -7.5606,
   lng: 110.8592,
@@ -93,7 +94,7 @@ export default function AdminPage() {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [showStopForm, setShowStopForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   // ─── STATE NOTIFIKASI BARU (MODIFIED) ─────────────────────────────
   // Mengubah toast string menjadi object untuk mendukung tipe (success / warning) dan pesan dinamis
   const [alertConfig, setAlertConfig] = useState({
@@ -119,9 +120,9 @@ export default function AdminPage() {
   useEffect(() => { setLocalStops(stops); }, [stops]);
   useEffect(() => { setLocalSchedules(schedules); }, [schedules]);
   useEffect(() => { setLocalAnnouncements(announcements); }, [announcements]);
-  
-  useEffect(() => { 
-    setLocalOperationalStatus(operationalStatus); 
+
+  useEffect(() => {
+    setLocalOperationalStatus(operationalStatus);
     if (operationalStatus?.message) {
       setInputMessage(operationalStatus.message);
     }
@@ -205,7 +206,7 @@ export default function AdminPage() {
     setSaving(true);
 
     const targetOrder = stopForm.stop_order !== "" && stopForm.stop_order !== undefined
-      ? Number(stopForm.stop_order) 
+      ? Number(stopForm.stop_order)
       : (sortedStops[sortedStops.length - 1]?.stop_order ?? 0) + 1;
 
     const duplicateStop = localStops.find(
@@ -215,8 +216,8 @@ export default function AdminPage() {
     // KETIKA ERROR DUPLIKAT: Picu piringan tengah (Centered Warning) yang menarik perhatian
     if (duplicateStop) {
       showAlert(
-        "warning", 
-        "Urutan Halte Duplikat!", 
+        "warning",
+        "Urutan Halte Duplikat!",
         `Nomor urutan ${targetOrder} sudah digunakan oleh "${duplicateStop.name}". Silakan gunakan nomor urutan lain agar rute peta tidak bentrok.`
       );
       setSaving(false);
@@ -225,6 +226,7 @@ export default function AdminPage() {
 
     const payload = {
       name: stopForm.name,
+      location_description: stopForm.location_description || null,
       stop_order: targetOrder,
       lat: Number(stopForm.lat) || -7.5606,
       lng: Number(stopForm.lng) || 110.8592,
@@ -304,13 +306,13 @@ export default function AdminPage() {
     }
   }
 
-// ─── OPERATIONAL STATUS CRUD ──────────────────────────────────────
+  // ─── OPERATIONAL STATUS CRUD ──────────────────────────────────────
   async function handleSaveOperationalStatus(event) {
     event.preventDefault();
     setSaving(true);
 
     const isOperating = localOperationalStatus.isOperating;
-    
+
     const payload = {
       id: 1,
       is_operating: isOperating,
@@ -318,13 +320,13 @@ export default function AdminPage() {
     };
 
     const { error } = await supabase.from("operational_status").upsert(payload);
-    
+
     if (error) {
       showAlert("warning", "Gagal Menyimpan");
     } else {
-      setLocalOperationalStatus({ 
-        isOperating: isOperating, 
-        message: payload.message 
+      setLocalOperationalStatus({
+        isOperating: isOperating,
+        message: payload.message
       });
       // Berhasil disimpan, hanya memunculkan judul tanpa keterangan teks kecil di bawahnya
       showAlert("success", "Status Operasional Disimpan");
@@ -419,46 +421,45 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      
-    {/* ─── MODAL PREMIUM CENTERED ALERT ──────────────────────────────── */}
-    {alertConfig.isOpen && (
-      <div className="fixed inset-0 z-[9999] grid place-items-center p-4 bg-slate-950/40 backdrop-blur-sm">
-        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-all">
-          <div className="flex flex-col items-center text-center">
-            {alertConfig.type === "warning" ? (
-              // Lingkaran luar diperbesar ke size-20 (sebelumnya size-14)
-              <div className="grid size-20 place-items-center rounded-full bg-amber-50 text-amber-600 border-4 border-amber-100/50">
-                {/* Ikon diperbesar ke size 40 (sebelumnya size 28) */}
-                <AlertTriangle size={40} />
-              </div>
-            ) : (
-              // Lingkaran luar diperbesar ke size-20 (sebelumnya size-14)
-              <div className="grid size-20 place-items-center rounded-full bg-emerald-50 text-emerald-600 border-4 border-emerald-100/50">
-                {/* Ikon diperbesar ke size 40 (sebelumnya size 28) */}
-                <CheckCircle2 size={40} />
-              </div>
-            )}
 
-            {/* Teks dikecilkan menjadi text-lg (sebelumnya text-xl) */}
-            <h2 className="mt-5 text-lg font-black text-slate-950 leading-snug">
-              {alertConfig.title}
-            </h2>
+      {/* ─── MODAL PREMIUM CENTERED ALERT ──────────────────────────────── */}
+      {alertConfig.isOpen && (
+        <div className="fixed inset-0 z-[9999] grid place-items-center p-4 bg-slate-950/40 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-all">
+            <div className="flex flex-col items-center text-center">
+              {alertConfig.type === "warning" ? (
+                // Lingkaran luar diperbesar ke size-20 (sebelumnya size-14)
+                <div className="grid size-20 place-items-center rounded-full bg-amber-50 text-amber-600 border-4 border-amber-100/50">
+                  {/* Ikon diperbesar ke size 40 (sebelumnya size 28) */}
+                  <AlertTriangle size={40} />
+                </div>
+              ) : (
+                // Lingkaran luar diperbesar ke size-20 (sebelumnya size-14)
+                <div className="grid size-20 place-items-center rounded-full bg-emerald-50 text-emerald-600 border-4 border-emerald-100/50">
+                  {/* Ikon diperbesar ke size 40 (sebelumnya size 28) */}
+                  <CheckCircle2 size={40} />
+                </div>
+              )}
 
-            <button
-              type="button"
-              onClick={() => setAlertConfig({ ...alertConfig, isOpen: false })}
-              className={`mt-6 w-full py-2.5 rounded-xl font-black text-sm transition-all shadow-md ${
-                alertConfig.type === "warning"
-                  ? "bg-amber-600 text-white hover:bg-amber-700 shadow-amber-100"
-                  : "bg-blue-700 text-white hover:bg-blue-800 shadow-blue-100"
-              }`}
-            >
-              Tutup
-            </button>
+              {/* Teks dikecilkan menjadi text-lg (sebelumnya text-xl) */}
+              <h2 className="mt-5 text-lg font-black text-slate-950 leading-snug">
+                {alertConfig.title}
+              </h2>
+
+              <button
+                type="button"
+                onClick={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+                className={`mt-6 w-full py-2.5 rounded-xl font-black text-sm transition-all shadow-md ${alertConfig.type === "warning"
+                    ? "bg-amber-600 text-white hover:bg-amber-700 shadow-amber-100"
+                    : "bg-blue-700 text-white hover:bg-blue-800 shadow-blue-100"
+                  }`}
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex min-h-16 w-[min(1080px,calc(100%-32px))] flex-wrap items-center justify-between gap-3 py-3">
@@ -507,9 +508,8 @@ export default function AdminPage() {
               <div className="flex-1">
                 <p className="text-sm font-black uppercase tracking-wide text-slate-500">Status operasional</p>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
-                    localOperationalStatus.isOperating ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                  }`}>
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${localOperationalStatus.isOperating ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                    }`}>
                     {localOperationalStatus.isOperating ? "Beroperasi" : "Berhenti"}
                   </span>
                   <p className="text-lg font-bold text-slate-700">
@@ -517,7 +517,7 @@ export default function AdminPage() {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <span className="text-sm font-bold text-slate-500">
                   {localOperationalStatus.isOperating ? "Aktif" : "Nonaktif"}
@@ -770,6 +770,15 @@ export default function AdminPage() {
                     onChange={(e) => setStopForm({ ...stopForm, name: e.target.value })}
                     placeholder="Nama halte"
                     required
+                  />
+                </label>
+                <label className="mt-4 block font-bold text-slate-600">
+                  Deskripsi Lokasi
+                  <textarea
+                    className="mt-2 w-full min-h-[80px] rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                    value={stopForm.location_description}
+                    onChange={(e) => setStopForm({ ...stopForm, location_description: e.target.value })}
+                    placeholder="Contoh: Seberang gedung Rektorat..."
                   />
                 </label>
                 <label className="mt-4 block font-bold text-slate-600">

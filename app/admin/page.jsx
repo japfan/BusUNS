@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle, ArrowLeft, Bus, Clock, LogIn, MapPin,
-  Megaphone, Plus, Save, Trash2,
+  Megaphone, Plus, Save, Trash2, CheckCircle2, X
 } from "lucide-react";
 import AnnouncementCard from "@/components/AnnouncementCard";
 import StopCard from "@/components/StopCard";
@@ -53,7 +53,6 @@ export default function AdminPage() {
       setAuthLoading(false);
     });
 
-    // Listen perubahan auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setLoggedIn(!!session);
     });
@@ -94,8 +93,26 @@ export default function AdminPage() {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [showStopForm, setShowStopForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState("");
   
+  // ─── STATE NOTIFIKASI BARU (MODIFIED) ─────────────────────────────
+  // Mengubah toast string menjadi object untuk mendukung tipe (success / warning) dan pesan dinamis
+  const [alertConfig, setAlertConfig] = useState({
+    isOpen: false,
+    type: "success", // bisa "success" atau "warning"
+    title: "",
+    message: ""
+  });
+
+  // Fungsi pembantu untuk memicu modal di tengah layar
+  function showAlert(type, title, message) {
+    setAlertConfig({
+      isOpen: true,
+      type,
+      title,
+      message
+    });
+  }
+
   // State untuk menampung teks alasan yang diketik admin
   const [inputMessage, setInputMessage] = useState("");
 
@@ -103,18 +120,12 @@ export default function AdminPage() {
   useEffect(() => { setLocalSchedules(schedules); }, [schedules]);
   useEffect(() => { setLocalAnnouncements(announcements); }, [announcements]);
   
-  // Sinkronisasi data operasional awal ke local state dan input field
   useEffect(() => { 
     setLocalOperationalStatus(operationalStatus); 
     if (operationalStatus?.message) {
       setInputMessage(operationalStatus.message);
     }
   }, [operationalStatus]);
-
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(""), 3000);
-  }
 
   const sortedStops = useMemo(
     () => localStops.slice().sort((a, b) => Number(a.stop_order) - Number(b.stop_order)),
@@ -151,17 +162,17 @@ export default function AdminPage() {
 
     if (scheduleForm.id) {
       const { error } = await supabase.from("schedules").update(payload).eq("id", scheduleForm.id);
-      if (error) showToast("Gagal update jadwal: " + error.message);
+      if (error) showAlert("warning", "Gagal Ganti Jadwal", error.message);
       else {
         setLocalSchedules((items) => items.map((item) => item.id === scheduleForm.id ? { ...item, ...payload } : item));
-        showToast("Jadwal berhasil diupdate!");
+        showAlert("success", "Berhasil Diperbarui", "Jadwal keberangkatan bus berhasil disimpan.");
       }
     } else {
       const { data, error } = await supabase.from("schedules").insert(payload).select().single();
-      if (error) showToast("Gagal tambah jadwal: " + error.message);
+      if (error) showAlert("warning", "Gagal Tambah Jadwal", error.message);
       else {
         setLocalSchedules((items) => [data, ...items]);
-        showToast("Jadwal berhasil ditambahkan!");
+        showAlert("success", "Jadwal Ditambahkan", "Jam keberangkatan baru berhasil didaftarkan.");
       }
     }
 
@@ -172,23 +183,23 @@ export default function AdminPage() {
 
   async function deleteSchedule(id) {
     const { error } = await supabase.from("schedules").delete().eq("id", id);
-    if (error) showToast("Gagal hapus jadwal: " + error.message);
+    if (error) showAlert("warning", "Gagal Hapus", error.message);
     else {
       setLocalSchedules((items) => items.filter((item) => item.id !== id));
-      showToast("Jadwal dihapus.");
+      showAlert("success", "Jadwal Dihapus", "Jadwal operasional tersebut telah dihapus dari sistem.");
     }
   }
 
   async function toggleScheduleStatus(schedule) {
     const newStatus = schedule.status === "active" ? "inactive" : "active";
     const { error } = await supabase.from("schedules").update({ status: newStatus }).eq("id", schedule.id);
-    if (error) showToast("Gagal update status: " + error.message);
+    if (error) showAlert("warning", "Gagal Mengubah Status", error.message);
     else {
       setLocalSchedules((items) => items.map((item) => item.id === schedule.id ? { ...item, status: newStatus } : item));
     }
   }
 
-  // ─── STOP CRUD ───────────────────────────────────────────────────
+  // ─── STOP CRUD (MODIFIED WARNING) ────────────────────────────────
   async function saveStop(event) {
     event.preventDefault();
     setSaving(true);
@@ -197,12 +208,17 @@ export default function AdminPage() {
       ? Number(stopForm.stop_order) 
       : (sortedStops[sortedStops.length - 1]?.stop_order ?? 0) + 1;
 
-    const isDuplicate = localStops.some(
+    const duplicateStop = localStops.find(
       (stop) => Number(stop.stop_order) === targetOrder && stop.id !== stopForm.id
     );
 
-    if (isDuplicate) {
-      showToast(`Gagal: Nomor urutan ${targetOrder} sudah digunakan oleh halte lain!`);
+    // KETIKA ERROR DUPLIKAT: Picu piringan tengah (Centered Warning) yang menarik perhatian
+    if (duplicateStop) {
+      showAlert(
+        "warning", 
+        "Urutan Halte Duplikat!", 
+        `Nomor urutan ${targetOrder} sudah digunakan oleh "${duplicateStop.name}". Silakan gunakan nomor urutan lain agar rute peta tidak bentrok.`
+      );
       setSaving(false);
       return;
     }
@@ -218,19 +234,19 @@ export default function AdminPage() {
 
     if (stopForm.id) {
       const { error } = await supabase.from("stops").update(payload).eq("id", stopForm.id);
-      if (error) showToast("Gagal update halte: " + error.message);
+      if (error) showAlert("warning", "Gagal Mengubah Halte", error.message);
       else {
         setLocalStops((items) => items.map((item) => item.id === stopForm.id ? { ...item, ...payload } : item));
-        showToast("Halte berhasil diupdate!");
+        showAlert("success", "Halte Diperbarui", `Data halte ${stopForm.name} berhasil disimpan.`);
         setShowStopForm(false);
       }
     } else {
       const newId = "halte_" + stopForm.name.toLowerCase().replaceAll(" ", "_");
       const { data, error } = await supabase.from("stops").insert({ id: newId, ...payload }).select().single();
-      if (error) showToast("Gagal tambah halte: " + error.message);
+      if (error) showAlert("warning", "Gagal Menambah Halte", error.message);
       else {
         setLocalStops((items) => [data, ...items]);
-        showToast("Halte berhasil ditambahkan!");
+        showAlert("success", "Halte Ditambahkan", `Halte ${stopForm.name} telah terdaftar dalam sistem rute peta.`);
         setShowStopForm(false);
       }
     }
@@ -241,11 +257,11 @@ export default function AdminPage() {
 
   async function deleteStop(id) {
     const { error } = await supabase.from("stops").delete().eq("id", id);
-    if (error) showToast("Gagal hapus halte: " + error.message);
+    if (error) showAlert("warning", "Gagal Hapus Halte", error.message);
     else {
       setLocalStops((items) => items.filter((item) => item.id !== id));
       setLocalSchedules((items) => items.filter((item) => item.stop_id !== id));
-      showToast("Halte dihapus.");
+      showAlert("success", "Halte Dihapus", "Titik koordinat beserta seluruh jadwal terkait telah dibersihkan.");
     }
   }
 
@@ -261,17 +277,17 @@ export default function AdminPage() {
 
     if (announcementForm.id) {
       const { error } = await supabase.from("announcements").update(payload).eq("id", announcementForm.id);
-      if (error) showToast("Gagal update pengumuman: " + error.message);
+      if (error) showAlert("warning", "Gagal Simpan Pengumuman", error.message);
       else {
         setLocalAnnouncements((items) => items.map((item) => item.id === announcementForm.id ? { ...item, ...payload } : item));
-        showToast("Pengumuman diupdate!");
+        showAlert("success", "Pengumuman Diperbarui", "Isi informasi operasional berhasil diubah.");
       }
     } else {
       const { data, error } = await supabase.from("announcements").insert(payload).select().single();
-      if (error) showToast("Gagal tambah pengumuman: " + error.message);
+      if (error) showAlert("warning", "Gagal Tambah Pengumuman", error.message);
       else {
         setLocalAnnouncements((items) => [data, ...items]);
-        showToast("Pengumuman ditambahkan!");
+        showAlert("success", "Pengumuman Ditambahkan", "Informasi baru berhasil disiarkan ke halaman utama pengguna.");
       }
     }
 
@@ -281,14 +297,14 @@ export default function AdminPage() {
 
   async function deleteAnnouncement(id) {
     const { error } = await supabase.from("announcements").delete().eq("id", id);
-    if (error) showToast("Gagal hapus pengumuman: " + error.message);
+    if (error) showAlert("warning", "Gagal Hapus", error.message);
     else {
       setLocalAnnouncements((items) => items.filter((item) => item.id !== id));
-      showToast("Pengumuman dihapus.");
+      showAlert("success", "Pengumuman Dihapus", "Informasi siaran berhasil ditarik kembali.");
     }
   }
 
-  // ─── OPERATIONAL STATUS CRUD ─────────────────────────────────────
+// ─── OPERATIONAL STATUS CRUD ──────────────────────────────────────
   async function handleSaveOperationalStatus(event) {
     event.preventDefault();
     setSaving(true);
@@ -304,13 +320,14 @@ export default function AdminPage() {
     const { error } = await supabase.from("operational_status").upsert(payload);
     
     if (error) {
-      showToast("Gagal update status: " + error.message);
+      showAlert("warning", "Gagal Menyimpan");
     } else {
       setLocalOperationalStatus({ 
         isOperating: isOperating, 
         message: payload.message 
       });
-      showToast("Status operasional bus berhasil disimpan!");
+      // Berhasil disimpan, hanya memunculkan judul tanpa keterangan teks kecil di bawahnya
+      showAlert("success", "Status Operasional Disimpan");
     }
     setSaving(false);
   }
@@ -402,11 +419,46 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      {toast && (
-        <div className="fixed bottom-6 left-1/2 z-[9999] -translate-x-1/2 rounded-xl bg-slate-900 px-5 py-3 font-bold text-white shadow-xl">
-          {toast}
+      
+    {/* ─── MODAL PREMIUM CENTERED ALERT ──────────────────────────────── */}
+    {alertConfig.isOpen && (
+      <div className="fixed inset-0 z-[9999] grid place-items-center p-4 bg-slate-950/40 backdrop-blur-sm">
+        <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl transition-all">
+          <div className="flex flex-col items-center text-center">
+            {alertConfig.type === "warning" ? (
+              // Lingkaran luar diperbesar ke size-20 (sebelumnya size-14)
+              <div className="grid size-20 place-items-center rounded-full bg-amber-50 text-amber-600 border-4 border-amber-100/50">
+                {/* Ikon diperbesar ke size 40 (sebelumnya size 28) */}
+                <AlertTriangle size={40} />
+              </div>
+            ) : (
+              // Lingkaran luar diperbesar ke size-20 (sebelumnya size-14)
+              <div className="grid size-20 place-items-center rounded-full bg-emerald-50 text-emerald-600 border-4 border-emerald-100/50">
+                {/* Ikon diperbesar ke size 40 (sebelumnya size 28) */}
+                <CheckCircle2 size={40} />
+              </div>
+            )}
+
+            {/* Teks dikecilkan menjadi text-lg (sebelumnya text-xl) */}
+            <h2 className="mt-5 text-lg font-black text-slate-950 leading-snug">
+              {alertConfig.title}
+            </h2>
+
+            <button
+              type="button"
+              onClick={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+              className={`mt-6 w-full py-2.5 rounded-xl font-black text-sm transition-all shadow-md ${
+                alertConfig.type === "warning"
+                  ? "bg-amber-600 text-white hover:bg-amber-700 shadow-amber-100"
+                  : "bg-blue-700 text-white hover:bg-blue-800 shadow-blue-100"
+              }`}
+            >
+              Tutup
+            </button>
+          </div>
         </div>
-      )}
+      </div>
+    )}
 
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex min-h-16 w-[min(1080px,calc(100%-32px))] flex-wrap items-center justify-between gap-3 py-3">
@@ -447,7 +499,7 @@ export default function AdminPage() {
           <Stat icon={<Megaphone size={18} />} label="Pengumuman Aktif" value={activeAnnouncements.length} />
         </div>
 
-        {/* ── OPERASIONAL (MODIFIED TO TOGGLE SWITCH STYLE) ── */}
+        {/* ── OPERASIONAL ── */}
         <section className="mt-10" id="operasional">
           <SectionTitle eyebrow="OPERASIONAL" title="Status bus hari ini" />
           <form onSubmit={handleSaveOperationalStatus} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -466,7 +518,6 @@ export default function AdminPage() {
                 </div>
               </div>
               
-              {/* TOMBOL GESER KIRI-KANAN (TOGGLE SWITCH STYLE LIKE DARK MODE) */}
               <div className="flex items-center gap-3">
                 <span className="text-sm font-bold text-slate-500">
                   {localOperationalStatus.isOperating ? "Aktif" : "Nonaktif"}
@@ -477,15 +528,13 @@ export default function AdminPage() {
                     checked={localOperationalStatus.isOperating}
                     onChange={(e) => setLocalOperationalStatus({ ...localOperationalStatus, isOperating: e.target.checked })}
                     disabled={saving}
-                    className="sr-only peer" // Menyembunyikan checkbox kotak bawaan browser
+                    className="sr-only peer"
                   />
-                  {/* Background Rel Sakelar Geser */}
                   <div className="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-600"></div>
                 </label>
               </div>
             </div>
 
-            {/* Input alasan hanya muncul apabila sakelar digeser ke kiri (Nonaktif / False) */}
             {!localOperationalStatus.isOperating ? (
               <div className="mt-5 border-t border-slate-100 pt-4 animate-fade-in">
                 <label className="block font-bold text-slate-600">

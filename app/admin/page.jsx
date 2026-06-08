@@ -88,6 +88,7 @@ export default function AdminPage() {
   const [localStops, setLocalStops] = useState([]);
   const [localSchedules, setLocalSchedules] = useState([]);
   const [localAnnouncements, setLocalAnnouncements] = useState([]);
+  const [localOperationalStatus, setLocalOperationalStatus] = useState({ isOperating: true, message: "" });
 
   const [scheduleForm, setScheduleForm] = useState(blankSchedule);
   const [stopForm, setStopForm] = useState(blankStop);
@@ -101,6 +102,7 @@ export default function AdminPage() {
   useEffect(() => { setLocalStops(stops); }, [stops]);
   useEffect(() => { setLocalSchedules(schedules); }, [schedules]);
   useEffect(() => { setLocalAnnouncements(announcements); }, [announcements]);
+  useEffect(() => { setLocalOperationalStatus(operationalStatus); }, [operationalStatus]);
 
   function showToast(msg) {
     setToast(msg);
@@ -279,6 +281,24 @@ export default function AdminPage() {
     }
   }
 
+  // ─── OPERATIONAL STATUS CRUD ──────────────────────────────────────
+  async function toggleOperationalStatus() {
+    setSaving(true);
+    const newStatus = !localOperationalStatus.isOperating;
+    const payload = {
+      is_operating: newStatus,
+      message: localOperationalStatus.message || "Bus beroperasi normal sesuai jadwal.",
+    };
+
+    const { error } = await supabase.from("operational_status").upsert(payload);
+    if (error) showToast("Gagal update status: " + error.message);
+    else {
+      setLocalOperationalStatus({ ...localOperationalStatus, isOperating: newStatus });
+      showToast(`Status bus diubah menjadi ${newStatus ? "Aktif" : "Nonaktif"}`);
+    }
+    setSaving(false);
+  }
+
   // ─── LOADING AUTH ─────────────────────────────────────────────────
   if (authLoading) {
     return (
@@ -414,6 +434,48 @@ export default function AdminPage() {
           <Stat icon={<Clock size={18} />} label="Jadwal" value={localSchedules.length} />
           <Stat icon={<Megaphone size={18} />} label="Pengumuman Aktif" value={activeAnnouncements.length} />
         </div>
+
+        {/* ── OPERASIONAL ── */}
+        <section className="mt-10" id="operasional">
+          <SectionTitle eyebrow="OPERASIONAL" title="Status bus hari ini" />
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex-1">
+                <p className="text-sm font-black uppercase tracking-wide text-slate-500">Status operasional</p>
+                <p className="mt-2 text-lg font-bold text-slate-700">
+                  {localOperationalStatus.isOperating ? "Bus sedang beroperasi" : "Bus tidak beroperasi"}
+                </p>
+                {localOperationalStatus.message && (
+                  <p className="mt-2 text-sm text-slate-600">{localOperationalStatus.message}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-3 sm:flex-col sm:items-end">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={localOperationalStatus.isOperating}
+                    onChange={toggleOperationalStatus}
+                    disabled={saving}
+                    className="w-5 h-5 accent-emerald-600 cursor-pointer disabled:opacity-60"
+                  />
+                  <span className="font-bold text-slate-700">
+                    {localOperationalStatus.isOperating ? "Aktif" : "Nonaktif"}
+                  </span>
+                </label>
+                {localOperationalStatus.isOperating ? (
+                  <div className="rounded-full w-3 h-3 bg-emerald-500" aria-hidden="true" />
+                ) : (
+                  <div className="rounded-full w-3 h-3 bg-red-500" aria-hidden="true" />
+                )}
+              </div>
+            </div>
+            {localOperationalStatus.isOperating && (
+              <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm text-emerald-700 font-semibold">
+                Status aktif: Bus beroperasi. Bus beroperasi normal sesuai jadwal.
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* ── JADWAL ── */}
         <section className="mt-10" id="jadwal">

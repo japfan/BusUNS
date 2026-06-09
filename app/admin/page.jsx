@@ -539,13 +539,21 @@ export default function AdminPage() {
                   {localOperationalStatus.isOperating ? "Aktif" : "Nonaktif"}
                 </span>
                 <label className="relative inline-flex items-center cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={localOperationalStatus.isOperating}
-                    onChange={(e) => setLocalOperationalStatus({ ...localOperationalStatus, isOperating: e.target.checked })}
-                    disabled={saving}
-                    className="sr-only peer"
-                  />
+                <input
+                  type="checkbox"
+                  checked={localOperationalStatus.isOperating}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setLocalOperationalStatus({ ...localOperationalStatus, isOperating: checked });
+                    
+                    // Jika saklar digeser ke Nonaktif (false), kosongkan teks input agar placeholder muncul
+                    if (!checked) {
+                      setInputMessage("");
+                    }
+                  }}
+                  disabled={saving}
+                  className="sr-only peer"
+                />
                   <div className="w-14 h-8 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-600"></div>
                 </label>
               </div>

@@ -243,13 +243,29 @@ export default function AdminPage() {
         setShowStopForm(false);
       }
     } else {
-      const newId = "halte_" + stopForm.name.toLowerCase().replaceAll(" ", "_");
-      const { data, error } = await supabase.from("stops").insert({ id: newId, ...payload }).select().single();
-      if (error) showAlert("warning", "Gagal Menambah Halte", error.message);
-      else {
-        setLocalStops((items) => [data, ...items]);
-        showAlert("success", "Halte Ditambahkan", `Halte ${stopForm.name} telah terdaftar dalam sistem rute peta.`);
-        setShowStopForm(false);
+      try {
+        const response = await fetch("/api/stops", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          // Tangkap error dari API (misal: validasi gagal dari backend)
+          showAlert("warning", "Gagal Menambah Halte", result.error || "Terjadi kesalahan internal.");
+        } else {
+          // result.data berisi baris data yang baru saja berhasil dibuat oleh API
+          setLocalStops((items) => [result.data, ...items]);
+          showAlert("success", "Halte Ditambahkan", `Halte ${stopForm.name} telah terdaftar melalui sistem API.`);
+          setShowStopForm(false);
+        }
+      } catch (err) {
+        // Tangkap error jika jaringan terputus atau server API mati
+        showAlert("warning", "Kesalahan Jaringan", "Tidak dapat terhubung ke server API.");
       }
     }
 

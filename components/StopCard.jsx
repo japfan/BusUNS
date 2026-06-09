@@ -20,7 +20,7 @@ export default function StopCard({ stop, active, scheduleCount = 0, onSelect, on
           </span>
           <small className="mt-1 flex items-center gap-1 text-sm font-semibold text-slate-500">
             <MapPin size={14} className="shrink-0" aria-hidden="true" />
-            <span>{stop.area|| "Lokasi belum diatur"}</span>
+            <span>{stop.location_description || "Lokasi belum diatur"}</span>
           </small>
           <small className="mt-1 block text-sm font-semibold text-slate-500">Urutan {stop.stop_order ?? "-"}</small>
           <em className="mt-2 block text-sm font-black not-italic text-blue-700">{scheduleCount} jadwal tersedia</em>

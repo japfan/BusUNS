@@ -20,10 +20,12 @@ export function useBusData() {
           { data: stopsData, error: stopsError },
           { data: schedulesData, error: schedulesError },
           { data: announcementsData, error: announcementsError },
+          { data: operationalStatusData, error: operationalStatusError },
         ] = await Promise.all([
           supabase.from("stops").select("*"),
           supabase.from("schedules").select("*"),
           supabase.from("announcements").select("*"),
+          supabase.from("operational_status").select("*").limit(1).single(),
         ]);
 
         if (stopsError) throw stopsError;
@@ -33,10 +35,21 @@ export function useBusData() {
         setStops(stopsData || []);
         setSchedules(schedulesData || []);
         setAnnouncements(announcementsData || []);
-        setOperationalStatus({ isOperating: true, message: "" });
+
+        // Set operational status dengan fallback ke default jika tidak ada data
+        if (operationalStatusData) {
+          setOperationalStatus({
+            isOperating: operationalStatusData.is_operating ?? true,
+            message: operationalStatusData.message || "Bus beroperasi normal sesuai jadwal.",
+          });
+        } else {
+          setOperationalStatus({ isOperating: true, message: "Bus beroperasi normal sesuai jadwal." });
+        }
 
       } catch (error) {
         console.error("Gagal mengambil data dari Supabase:", error.message);
+        // Set default operational status jika error
+        setOperationalStatus({ isOperating: true, message: "Bus beroperasi normal sesuai jadwal." });
       } finally {
         setLoading(false);
       }

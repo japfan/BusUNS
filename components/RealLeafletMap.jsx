@@ -141,6 +141,10 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
 
   const routePositions = mappedStops.map((stop) => [stop.lat, stop.lng]);
   const center = routePositions[0] ?? defaultCenter;
+  const routeBounds = useMemo(() => {
+    if (routePositions.length < 2) return null;
+    return L.latLngBounds(routePositions).pad(0.65);
+  }, [routePositions]);
 
   const selectedStop = mappedStops.find((stop) => stop.id === selectedStopId) ?? null;
 
@@ -149,7 +153,16 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
       <div className="absolute left-5 top-5 z-[500] rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-sm font-black text-blue-800 shadow-sm">
         Rute Utama BusUNS
       </div>
-      <MapContainer center={center} zoom={15} scrollWheelZoom className="relative z-0 h-[540px] w-full">
+      <MapContainer
+        center={center}
+        maxBounds={routeBounds ?? undefined}
+        maxBoundsViscosity={0.9}
+        maxZoom={19}
+        minZoom={14}
+        scrollWheelZoom
+        zoom={15}
+        className="relative z-0 h-[540px] w-full"
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

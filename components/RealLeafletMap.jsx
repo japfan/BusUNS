@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
+import { busUnsRouteLine } from "@/data/routeLine";
 
 const defaultCenter = [-7.5606, 110.8592];
 
@@ -139,8 +140,12 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
     [stops],
   );
 
-  const routePositions = mappedStops.map((stop) => [stop.lat, stop.lng]);
-  const center = routePositions[0] ?? defaultCenter;
+  const fallbackRoutePositions = mappedStops.map((stop) => [stop.lat, stop.lng]);
+  const manualRoutePositions = busUnsRouteLine
+    .map(([lng, lat]) => [Number(lat), Number(lng)])
+    .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
+  const routePositions = manualRoutePositions.length >= 2 ? manualRoutePositions : fallbackRoutePositions;
+  const center = fallbackRoutePositions[0] ?? routePositions[0] ?? defaultCenter;
   const routeBounds = useMemo(() => {
     if (routePositions.length < 2) return null;
     return L.latLngBounds(routePositions).pad(0.65);

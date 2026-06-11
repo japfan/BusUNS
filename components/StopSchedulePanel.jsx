@@ -42,7 +42,7 @@ export default function StopSchedulePanel({
           <h2 className="mt-2 text-3xl font-black tracking-normal text-slate-950">{stop.name}</h2>
           <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-500">
             <MapPin size={16} aria-hidden="true" />
-            {stop.area}
+            {stop.location_description ?? "Deskripsi lokasi belum diisi"}
           </p>
         </div>
         {mobile ? (

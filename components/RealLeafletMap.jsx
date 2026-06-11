@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 
@@ -140,18 +140,89 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
   );
 
   const routePositions = mappedStops.map((stop) => [stop.lat, stop.lng]);
+  const routeRequestKey = mappedStops
+    .map((stop) => `${stop.id}:${stop.lat.toFixed(6)},${stop.lng.toFixed(6)}`)
+    .join("|");
+  const [routedPositions, setRoutedPositions] = useState([]);
+  const [routeSource, setRouteSource] = useState("fallback");
+  const displayRoutePositions = routedPositions.length >= 2 ? routedPositions : routePositions;
   const center = routePositions[0] ?? defaultCenter;
   const routeBounds = useMemo(() => {
-    if (routePositions.length < 2) return null;
-    return L.latLngBounds(routePositions).pad(0.65);
-  }, [routePositions]);
+    if (displayRoutePositions.length < 2) return null;
+    return L.latLngBounds(displayRoutePositions).pad(0.65);
+  }, [displayRoutePositions]);
 
   const selectedStop = mappedStops.find((stop) => stop.id === selectedStopId) ?? null;
+
+  useEffect(() => {
+    if (mappedStops.length < 2) {
+      setRoutedPositions([]);
+      setRouteSource("fallback");
+      return;
+    }
+
+    const cacheKey = `busuns-route:${routeRequestKey}`;
+    const cachedRoute = window.sessionStorage.getItem(cacheKey);
+    if (cachedRoute) {
+      try {
+        const parsed = JSON.parse(cachedRoute);
+        if (parsed.source === "openrouteservice" && parsed.positions?.length >= 2) {
+          setRoutedPositions(parsed.positions);
+          setRouteSource(parsed.source);
+          return;
+        }
+        window.sessionStorage.removeItem(cacheKey);
+      } catch {
+        window.sessionStorage.removeItem(cacheKey);
+      }
+    }
+
+    const controller = new AbortController();
+
+    async function loadRoute() {
+      try {
+        const response = await fetch("/api/route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            coordinates: mappedStops.map((stop) => [stop.lng, stop.lat]),
+          }),
+        });
+
+        if (!response.ok) throw new Error("Gagal memuat rute.");
+
+        const data = await response.json();
+        setRoutedPositions(data.positions ?? []);
+        setRouteSource(data.source ?? "fallback");
+        if (data.source === "openrouteservice" && data.positions?.length >= 2) {
+          window.sessionStorage.setItem(
+            cacheKey,
+            JSON.stringify({
+              positions: data.positions,
+              source: data.source,
+            }),
+          );
+        } else {
+          window.sessionStorage.removeItem(cacheKey);
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          setRoutedPositions([]);
+          setRouteSource("fallback");
+        }
+      }
+    }
+
+    loadRoute();
+
+    return () => controller.abort();
+  }, [mappedStops, routeRequestKey]);
 
   return (
     <section className="relative z-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70" id="peta">
       <div className="absolute left-5 top-5 z-[500] rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-sm font-black text-blue-800 shadow-sm">
-        Rute Utama BusUNS
+        {routeSource === "openrouteservice" ? "Rute BusUNS mengikuti jalan" : "Rute Utama BusUNS"}
       </div>
       <MapContainer
         center={center}
@@ -168,14 +239,14 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <Polyline
-          positions={routePositions}
+          positions={displayRoutePositions}
           pathOptions={{ color: "#bfdbfe", weight: 12, opacity: 0.35 }}
         />
         <Polyline
-          positions={routePositions}
+          positions={displayRoutePositions}
           pathOptions={{ color: "#1d4ed8", weight: 6, opacity: 0.82 }}
         />
-        <RouteDirectionArrows positions={routePositions} />
+        <RouteDirectionArrows positions={displayRoutePositions} />
         {mappedStops.map((stop) => {
           const selected = selectedStopId === stop.id;
           const matched = matchedIds.has(stop.id);
@@ -196,7 +267,7 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
             </Marker>
           );
         })}
-        <FitRouteBounds positions={routePositions} />
+        <FitRouteBounds positions={displayRoutePositions} />
         <FlyToSelected stop={selectedStop} />
       </MapContainer>
     </section>

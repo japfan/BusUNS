@@ -350,13 +350,27 @@ export default function AdminPage() {
     setSaving(false);
   }
 
-  if (authLoading) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-slate-50 font-semibold text-slate-500">
-        Memeriksa sesi...
+/*block kode buat loading */
+if (authLoading) {
+  return (
+    <div className="grid min-h-screen place-items-center bg-slate-50 antialiased">
+      <div className="flex flex-col items-center gap-5">
+        {/* Kotak Ikon Bus dengan Efek Membal */}
+        <div className="grid size-16 animate-bounce place-items-center rounded-2xl bg-blue-50 text-blue-700 shadow-xl shadow-blue-100 border border-blue-100">
+          <Bus size={32} strokeWidth={2.5} />
+        </div>
+
+        {/* Status Loading */}
+        <div className="text-center">
+          <p className="text-sm font-black uppercase tracking-widest text-blue-700">Sistem Informasi</p>
+          <p className="mt-1 text-base font-bold text-slate-600 animate-pulse">
+            Memverifikasi kredensial...
+          </p>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   if (!loggedIn) {
     return (
@@ -427,13 +441,27 @@ export default function AdminPage() {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="grid min-h-screen place-items-center bg-slate-50 font-semibold text-slate-600">
-        Memuat data dari database...
+/*block kode buat loading */
+if (loading) {
+  return (
+    <div className="grid min-h-screen place-items-center bg-slate-50 antialiased">
+      <div className="flex flex-col items-center gap-5">
+        {/* Kotak Ikon Bus dengan Efek Membal */}
+        <div className="grid size-16 animate-bounce place-items-center rounded-2xl bg-blue-50 text-blue-700 shadow-xl shadow-blue-100 border border-blue-100">
+          <Bus size={32} strokeWidth={2.5} />
+        </div>
+
+        {/* Status Loading */}
+        <div className="text-center">
+          <p className="text-sm font-black uppercase tracking-widest text-blue-700">Sistem Informasi</p>
+          <p className="mt-1 text-base font-bold text-slate-600 animate-pulse">
+            Sinkronisasi database...
+          </p>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <main className="min-h-screen bg-slate-50">

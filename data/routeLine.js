@@ -1,6 +1,6 @@
 // Rute utama BusUNS untuk production sederhana.
 // Tambahkan titik belokan jalan di antara halte agar garis makin mengikuti jalan.
-// Format koordinat Leaflet: [lat, lng].
+// Format koordinat: [lng, lat].
 export const busUnsRouteLine = [
 [
             110.856198,

@@ -42,8 +42,8 @@ function createArrowIcon(angle) {
     className: "",
     html: `
       <div style="
-        width: 28px;
-        height: 28px;
+        width: 22px;
+        height: 22px;
         display: grid;
         place-items: center;
         transform: rotate(${angle}deg);
@@ -51,25 +51,41 @@ function createArrowIcon(angle) {
         <div style="
           width: 0;
           height: 0;
-          border-top: 7px solid transparent;
-          border-bottom: 7px solid transparent;
-          border-left: 13px solid #1d4ed8;
+          border-top: 5px solid transparent;
+          border-bottom: 5px solid transparent;
+          border-left: 10px solid #f59e0b;
           filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.28));
         "></div>
       </div>
     `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
   });
 }
 
-function RouteDirectionArrows({ positions }) {
+function distanceInMeters(start, end) {
+  return L.latLng(start).distanceTo(L.latLng(end));
+}
+
+function RouteDirectionArrows({ positions, stopPositions }) {
   const map = useMap();
   const arrows = useMemo(() => {
     if (positions.length < 2) return [];
 
-    return positions.slice(0, -1).map((position, index) => {
+    const maxArrows = 8;
+    const minDistanceFromStop = 45;
+    const segments = positions.slice(0, -1).map((position, index) => {
       const nextPosition = positions[index + 1];
+      const midpoint = [
+        (position[0] + nextPosition[0]) / 2,
+        (position[1] + nextPosition[1]) / 2,
+      ];
+      const nearStop = stopPositions.some(
+        (stopPosition) => distanceInMeters(midpoint, stopPosition) < minDistanceFromStop,
+      );
+
+      if (nearStop) return null;
+
       const currentPoint = map.latLngToLayerPoint(position);
       const nextPoint = map.latLngToLayerPoint(nextPosition);
       const angle =
@@ -77,14 +93,30 @@ function RouteDirectionArrows({ positions }) {
 
       return {
         angle,
+        length: distanceInMeters(position, nextPosition),
         id: `${position[0]}-${position[1]}-${index}`,
-        position: [
-          (position[0] + nextPosition[0]) / 2,
-          (position[1] + nextPosition[1]) / 2,
-        ],
+        position: midpoint,
       };
+    }).filter(Boolean);
+
+    if (segments.length <= maxArrows) return segments;
+
+    const totalLength = segments.reduce((sum, segment) => sum + segment.length, 0);
+    const spacing = totalLength / (maxArrows + 1);
+    const sampled = [];
+    let nextTarget = spacing;
+    let travelled = 0;
+
+    segments.forEach((segment) => {
+      travelled += segment.length;
+      if (travelled >= nextTarget && sampled.length < maxArrows) {
+        sampled.push(segment);
+        nextTarget += spacing;
+      }
     });
-  }, [map, positions]);
+
+    return sampled;
+  }, [map, positions, stopPositions]);
 
   return arrows.map((arrow) => (
     <Marker
@@ -92,7 +124,7 @@ function RouteDirectionArrows({ positions }) {
       interactive={false}
       key={arrow.id}
       position={arrow.position}
-      zIndexOffset={300}
+      zIndexOffset={50}
     />
   ));
 }
@@ -141,6 +173,7 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
   );
 
   const fallbackRoutePositions = mappedStops.map((stop) => [stop.lat, stop.lng]);
+  const stopPositions = fallbackRoutePositions;
   const manualRoutePositions = busUnsRouteLine
     .map(([lng, lat]) => [Number(lat), Number(lng)])
     .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
@@ -180,7 +213,7 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
           positions={routePositions}
           pathOptions={{ color: "#1d4ed8", weight: 6, opacity: 0.82 }}
         />
-        <RouteDirectionArrows positions={routePositions} />
+        <RouteDirectionArrows positions={routePositions} stopPositions={stopPositions} />
         {mappedStops.map((stop) => {
           const selected = selectedStopId === stop.id;
           const matched = matchedIds.has(stop.id);

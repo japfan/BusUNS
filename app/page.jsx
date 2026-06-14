@@ -20,7 +20,7 @@ const RealLeafletMap = dynamic(() => import("@/components/RealLeafletMap"), {
 export default function HomePage() {
   const { stops, schedules, announcements, operationalStatus, stopMap, loading } = useBusData();
   const [query, setQuery] = useState("");
-  const [selectedStopId, setSelectedStopId] = useState("");
+  const [selectedStopId, setSelectedStopId] = useState(""); // Default kosong, tidak ada halte terpilih
   const [isFocused, setIsFocused] = useState(false);
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [mobilePanelClosing, setMobilePanelClosing] = useState(false);
@@ -31,13 +31,18 @@ export default function HomePage() {
     [stops],
   );
 
-  const selectedStop = stopMap[selectedStopId] ?? sortedStops[0];
+  // ── PERBAIKAN LOGIKA: selectedStop akan null jika belum ada id terpilih ──
+  const selectedStop = selectedStopId ? stopMap[selectedStopId] : null;
 
-  const selectedSchedules = schedules
-    .filter((schedule) => schedule.status === "active" && schedule.stop_id === selectedStop?.id)
-    .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
+  // Jadwal hanya difilter jika ada halte yang dipilih, jika tidak ada, kosongkan
+  const selectedSchedules = useMemo(() => {
+    if (!selectedStop) return [];
+    return schedules
+      .filter((schedule) => schedule.status === "active" && schedule.stop_id === selectedStop.id)
+      .sort((a, b) => a.departure_time.localeCompare(b.departure_time));
+  }, [selectedStop, schedules]);
 
-  const nextStop = stopMap[selectedStop?.next_stop_id];
+  const nextStop = selectedStop ? stopMap[selectedStop.next_stop_id] : null;
 
   const nextGlobalSchedule = useMemo(() => {
     const currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -93,6 +98,7 @@ export default function HomePage() {
 
   const activeAnnouncements = announcements.filter((announcement) => announcement.status === "active");
 
+  // Fungsi dipicu ketika pin halte di peta diklik langsung oleh user
   function selectStop(stopId) {
     setSelectedStopId(stopId);
     setMobilePanelClosing(false);
@@ -107,8 +113,9 @@ export default function HomePage() {
     }, 380);
   }
 
+  // Fungsi dipicu saat memilih hasil pencarian dari Search Bar
   const handleSelectFromSearch = (stopId) => {
-    selectStop(stopId);
+    setSelectedStopId(stopId); // Set ID halte aktif (lingkaran kuning pindah ke sini)
     setQuery("");
     setIsFocused(false);
 
@@ -197,7 +204,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── AREA UTAMA: TERINTEGRASI ID "peta" DENGAN MARGIN SCROLL ── */}
       <div id="peta" className="scroll-mt-24">
         
         {/* ── SEARCH BAR ── */}
@@ -265,7 +271,7 @@ export default function HomePage() {
         <section className="mx-auto grid w-[min(1180px,calc(100%-32px))] gap-5 pb-16 md:grid-cols-[minmax(0,1fr)_360px]">
           <RealLeafletMap
             stops={sortedStops}
-            selectedStopId={selectedStop?.id}
+            selectedStopId={selectedStopId} // Kirim ID murni (bisa string kosong di awal agar tidak ada warna kuning bawaan)
             matchingStopIds={matchingStopIds}
             onSelectStop={selectStop}
           />
@@ -279,8 +285,8 @@ export default function HomePage() {
         </section>
       </div>
 
-      {/* ── MOBILE PANEL (BOTTOM SHEET) JADWAL POPUP ── */}
-      {mobilePanelOpen && (
+      {/* ── MOBILE PANEL JADWAL POPUP ── */}
+      {mobilePanelOpen && selectedStop && (
         <>
           <button
             className={`fixed inset-0 z-[900] bg-slate-950/30 backdrop-blur-sm md:hidden ${

@@ -65,7 +65,7 @@ export default function HomePage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const matchingStopIds = useMemo(() => {
+    const matchingStopIds = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return new Set(sortedStops.map((stop) => stop.id));
 
@@ -75,7 +75,7 @@ export default function HomePage() {
           const stopSchedules = schedules.filter((schedule) => schedule.stop_id === stop.id);
           const text = [
             stop.name,
-            stop.area,
+            stop.location_description || "", // ── DIGANTI DISINI (ditambah || "" untuk antisipasi data null/safety) ──
             ...stopSchedules.map((schedule) => schedule.departure_time),
           ]
             .join(" ")

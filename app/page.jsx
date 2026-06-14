@@ -239,7 +239,7 @@ if (loading) {
                       <strong className="block font-black text-slate-950">{stop.name}</strong>
                       <small className="flex items-center gap-1 text-sm font-semibold text-slate-500">
                         <MapPin size={12} aria-hidden="true" />
-                        {stop.area}
+                        {stop.location_description}
                       </small>
                     </span>
                     <span className="ml-auto shrink-0 text-sm font-black text-blue-700">

@@ -200,12 +200,12 @@ if (loading) {
             <Search size={20} className="shrink-0 text-slate-400" aria-hidden="true" />
             <input
               className="w-full border-0 bg-transparent text-base font-semibold text-slate-800 outline-none placeholder:text-slate-400"
-              type="search"
+              type="text" // ── UBAH DARI "search" MENJADI "text" ──
               placeholder="Cari halte. Contoh: FISIP, Teknik, Rektorat"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              onFocus={() => setIsFocused(true)} // <── TAMBAHKAN INI (Buka saat diklik)
-              onBlur={() => setTimeout(() => setIsFocused(false), 200)} // <── TAMBAHKAN INI (Tutup saat klik luar area)
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setTimeout(() => setIsFocused(false), 200)}
             />
             {query && (
               <button

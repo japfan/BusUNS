@@ -21,6 +21,7 @@ export default function HomePage() {
   const { stops, schedules, announcements, operationalStatus, stopMap, loading } = useBusData();
   const [query, setQuery] = useState("");
   const [selectedStopId, setSelectedStopId] = useState("");
+  const [isFocused, setIsFocused] = useState(false); // <── TAMBAHKAN INI
   const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
   const [mobilePanelClosing, setMobilePanelClosing] = useState(false);
   const [now, setNow] = useState(() => new Date());
@@ -133,7 +134,8 @@ if (loading) {
   );
 }
 
-  const showDropdown = query.trim().length > 0;
+// Dropdown akan muncul jika ada teks pencarian ATAU saat input diklik/fokus
+  const showDropdown = query.trim().length > 0 || isFocused;
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -202,12 +204,17 @@ if (loading) {
               placeholder="Cari halte. Contoh: FISIP, Teknik, Rektorat"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onFocus={() => setIsFocused(true)} // <── TAMBAHKAN INI (Buka saat diklik)
+              onBlur={() => setTimeout(() => setIsFocused(false), 200)} // <── TAMBAHKAN INI (Tutup saat klik luar area)
             />
             {query && (
               <button
                 className="shrink-0 rounded-lg px-2 py-1 text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
                 type="button"
-                onClick={() => setQuery("")}
+                onClick={() => {
+                  setQuery("");
+                  setIsFocused(false); // <── TAMBAHKAN INI
+                }}
               >
                 ✕
               </button>

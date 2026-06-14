@@ -8,32 +8,55 @@ import { busUnsRouteLine } from "@/data/routeLine";
 const defaultCenter = [-7.5606, 110.8592];
 
 function createStopIcon({ selected, matched }) {
-  const color = selected ? "#1d4ed8" : matched ? "#0284c7" : "#64748b";
+  const color = selected ? "#eab308" : matched ? "#0284c7" : "#64748b";
+  const size = selected ? "40px" : "34px";
+  const innerSize = selected ? "12px" : "10px";
 
   return L.divIcon({
     className: "",
     html: `
-      <div style="
-        width: 34px;
-        height: 34px;
-        display: grid;
-        place-items: center;
-        border: 4px solid white;
-        border-radius: 999px;
-        background: ${color};
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.22);
-      ">
+      <div style="position: relative; width: ${size}; height: ${size}; display: grid; place-items: center;">
+        ${selected ? `
+          <div style="
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 999px;
+            background: #eab308;
+            opacity: 0.4;
+            animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+          "></div>
+          <style>
+            @keyframes ping {
+              75%, 100% { transform: scale(1.8); opacity: 0; }
+            }
+          </style>
+        ` : ""}
         <div style="
-          width: 10px;
-          height: 10px;
+          position: relative;
+          width: ${size};
+          height: ${size};
+          display: grid;
+          place-items: center;
+          border: 4px solid white;
           border-radius: 999px;
-          background: white;
-        "></div>
+          background: ${color};
+          box-shadow: ${selected ? "0 12px 28px rgba(234, 179, 8, 0.4)" : "0 10px 24px rgba(15, 23, 42, 0.22)"};
+          z-index: 10;
+          transition: all 0.3s ease;
+        ">
+          <div style="
+            width: ${innerSize};
+            height: ${innerSize};
+            border-radius: 999px;
+            background: white;
+          "></div>
+        </div>
       </div>
     `,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-    popupAnchor: [0, -18],
+    iconSize: selected ? [40, 40] : [34, 34],
+    iconAnchor: selected ? [20, 20] : [17, 17],
+    popupAnchor: [0, -20],
   });
 }
 
@@ -70,50 +93,54 @@ function distanceInMeters(start, end) {
 function RouteDirectionArrows({ positions, stopPositions }) {
   const map = useMap();
   const arrows = useMemo(() => {
-    if (positions.length < 2) return [];
+    const validPositions = positions.filter(p => p && p[0] && p[1]);
+    if (validPositions.length < 2) return [];
 
-    const maxArrows = 8;
-    const minDistanceFromStop = 45;
-    const segments = positions.slice(0, -1).map((position, index) => {
-      const nextPosition = positions[index + 1];
-      const midpoint = [
-        (position[0] + nextPosition[0]) / 2,
-        (position[1] + nextPosition[1]) / 2,
-      ];
-      const nearStop = stopPositions.some(
-        (stopPosition) => distanceInMeters(midpoint, stopPosition) < minDistanceFromStop,
-      );
-
-      if (nearStop) return null;
-
-      const currentPoint = map.latLngToLayerPoint(position);
-      const nextPoint = map.latLngToLayerPoint(nextPosition);
-      const angle =
-        (Math.atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x) * 180) / Math.PI;
-
-      return {
-        angle,
-        length: distanceInMeters(position, nextPosition),
-        id: `${position[0]}-${position[1]}-${index}`,
-        position: midpoint,
-      };
-    }).filter(Boolean);
-
-    if (segments.length <= maxArrows) return segments;
-
-    const totalLength = segments.reduce((sum, segment) => sum + segment.length, 0);
-    const spacing = totalLength / (maxArrows + 1);
     const sampled = [];
-    let nextTarget = spacing;
-    let travelled = 0;
+    
+    // ATUR JARAK ANTAR PANAH DI SINI (Misal: Tiap 60 meter jalan, munculkan 1 panah)
+    const arrowIntervalMeters = 60; 
+    const minDistanceFromStop = 35; // Jarak aman dari halte agar tidak bertumpuk
 
-    segments.forEach((segment) => {
-      travelled += segment.length;
-      if (travelled >= nextTarget && sampled.length < maxArrows) {
-        sampled.push(segment);
-        nextTarget += spacing;
+    let accumulatedDistance = 0;
+
+    for (let i = 0; i < validPositions.length - 1; i++) {
+      const currentLoc = validPositions[i];
+      const nextLoc = validPositions[i + 1];
+      
+      // Hitung jarak segmen saat ini dalam meter
+      const segmentLength = distanceInMeters(currentLoc, nextLoc);
+      accumulatedDistance += segmentLength;
+
+      // Jika akumulasi jarak sudah melewati batas interval, taruh panah di sini
+      if (accumulatedDistance >= arrowIntervalMeters) {
+        const midpoint = [
+          (currentLoc[0] + nextLoc[0]) / 2,
+          (currentLoc[1] + nextLoc[1]) / 2,
+        ];
+
+        // Validasi jarak terhadap halte terdekat
+        const nearStop = stopPositions.some(
+          (stopLoc) => distanceInMeters(midpoint, stopLoc) < minDistanceFromStop,
+        );
+
+        if (!nearStop) {
+          const currentPoint = map.latLngToContainerPoint(currentLoc);
+          const nextPoint = map.latLngToContainerPoint(nextLoc);
+          
+          const angle = (Math.atan2(nextPoint.y - currentPoint.y, nextPoint.x - currentPoint.x) * 180) / Math.PI;
+
+          sampled.push({
+            angle,
+            id: `arrow-fixed-${i}-${midpoint[0]}-${midpoint[1]}`,
+            position: midpoint,
+          });
+        }
+
+        // Reset hitungan akumulasi untuk mencari interval berikutnya
+        accumulatedDistance = 0;
       }
-    });
+    }
 
     return sampled;
   }, [map, positions, stopPositions]);
@@ -129,7 +156,6 @@ function RouteDirectionArrows({ positions, stopPositions }) {
   ));
 }
 
-// Fit ke seluruh rute hanya sekali saat pertama load
 function FitRouteBounds({ positions }) {
   const map = useMap();
   const fitted = useRef(false);
@@ -143,17 +169,58 @@ function FitRouteBounds({ positions }) {
   return null;
 }
 
-// Zoom in ke halte yang dipilih, tanpa zoom out
-function FlyToSelected({ stop }) {
+function FlyToSelected({ stopId, stops }) {
   const map = useMap();
+  const lastValidStopId = useRef("");
 
   useEffect(() => {
-    if (!stop) return;
-    const currentZoom = map.getZoom();
-    const targetZoom = Math.max(currentZoom, 18); // zoom in, tidak pernah zoom out
-    map.flyTo([stop.lat, stop.lng], targetZoom, { duration: 0.8 });
-  }, [map, stop]);
+    if (!stopId) {
+      lastValidStopId.current = "";
+      return;
+    }
 
+    const currentStop = stops.find((s) => s.id === stopId);
+    if (!currentStop || !currentStop.lat || !currentStop.lng) return;
+
+    lastValidStopId.current = stopId;
+    
+    // Level zoom sudah pas sesuai keinginanmu
+    const zoomTarget = 18; 
+
+    // KUNCI PERBAIKAN: Gunakan koordinat asli tanpa dikurangi/ditambah offset
+    // Ini akan membuat posisi halte tepat berada di titik pusat (tengah) peta
+    const targetLatLng = [currentStop.lat, currentStop.lng];
+
+    // 1. Set zoom level secara instan jika belum sesuai
+    if (map.getZoom() !== zoomTarget) {
+      map.setView(targetLatLng, zoomTarget, { animate: false });
+    }
+
+    // 2. Geser datar perlahan ke titik tengah murni
+    map.panTo(targetLatLng, {
+      animate: true,
+      duration: 2.2,
+      easeLinearity: 0.25
+    });
+
+  }, [map, stopId, stops]);
+
+  return null;
+}
+
+function MapScrollHandler() {
+  useMapEvents({
+    click: () => {
+      const searchSection = document.getElementById("pencarian-dan-peta");
+      if (searchSection) {
+        // Meluncur mulus tepat ke elemen search bar
+        searchSection.scrollIntoView({
+          behavior: "smooth",
+          block: "start", // Membuat bagian atas search bar pas di atas layar
+        });
+      }
+    },
+  });
   return null;
 }
 
@@ -179,22 +246,12 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
     .filter(([lat, lng]) => Number.isFinite(lat) && Number.isFinite(lng));
   const routePositions = manualRoutePositions.length >= 2 ? manualRoutePositions : fallbackRoutePositions;
   const center = fallbackRoutePositions[0] ?? routePositions[0] ?? defaultCenter;
-  const routeBounds = useMemo(() => {
-    if (routePositions.length < 2) return null;
-    return L.latLngBounds(routePositions).pad(0.65);
-  }, [routePositions]);
-
-  const selectedStop = mappedStops.find((stop) => stop.id === selectedStopId) ?? null;
 
   return (
-    <section className="relative z-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70" id="peta">
-      <div className="absolute left-5 top-5 z-[500] rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-sm font-black text-blue-800 shadow-sm">
-        Rute Utama BusUNS
-      </div>
+    <section className="relative z-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
       <MapContainer
         center={center}
-        maxBounds={routeBounds ?? undefined}
-        maxBoundsViscosity={0.9}
+        // BATASAN MAXBOUNDS TELAH DIHAPUS TOTAL AGAR BEBAS DIGESER
         maxZoom={19}
         minZoom={14}
         scrollWheelZoom
@@ -214,6 +271,7 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
           pathOptions={{ color: "#1d4ed8", weight: 6, opacity: 0.82 }}
         />
         <RouteDirectionArrows positions={routePositions} stopPositions={stopPositions} />
+        
         {mappedStops.map((stop) => {
           const selected = selectedStopId === stop.id;
           const matched = matchedIds.has(stop.id);
@@ -223,10 +281,11 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
               eventHandlers={{ click: () => onSelectStop(stop.id) }}
               icon={createStopIcon({ selected, matched })}
               key={stop.id}
-              opacity={matched ? 1 : 0.45}
+              opacity={selected || matched ? 1 : 0.45}
               position={[stop.lat, stop.lng]}
+              zIndexOffset={selected ? 1000 : 0}
             >
-              <Popup>
+              <Popup autoPan={false}>
                 <strong>{stop.name}</strong>
                 <br />
                 {stop.area}
@@ -235,7 +294,7 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
           );
         })}
         <FitRouteBounds positions={routePositions} />
-        <FlyToSelected stop={selectedStop} />
+        <FlyToSelected stopId={selectedStopId} stops={mappedStops} />
       </MapContainer>
     </section>
   );

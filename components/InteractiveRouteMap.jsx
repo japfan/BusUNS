@@ -10,13 +10,17 @@ export default function InteractiveRouteMap({
 
   return (
     <section className="relative min-h-[540px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70" id="peta">
+      {/* Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(148,163,184,0.13)_1px,transparent_1px),linear-gradient(rgba(148,163,184,0.13)_1px,transparent_1px)] bg-[size:34px_34px]" />
-      <div className="absolute left-5 top-5 z-10 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/90 px-4 py-2 text-sm font-bold text-blue-800 shadow-sm">
+      
+      {/* KODE PERBAIKAN: Posisi dirubah ke kanan atas (right-5) dan diberi z-index tinggi (z-30) agar berada di atas SVG */}
+      <div className="absolute right-5 top-5 z-30 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/90 px-4 py-2 text-sm font-bold text-blue-800 shadow-sm">
         <Bus size={16} aria-hidden="true" />
         Rute Utama BusUNS
       </div>
 
-      <svg className="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      {/* Jalur Bus SVG */}
+      <svg className="absolute inset-0 size-full z-10" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <polyline
           points={points}
           fill="none"
@@ -36,6 +40,7 @@ export default function InteractiveRouteMap({
         />
       </svg>
 
+      {/* Titik-titik Halte */}
       {stops.map((stop) => {
         const isSelected = selectedStopId === stop.id;
         const isMatched = matchingStopIds.has(stop.id);

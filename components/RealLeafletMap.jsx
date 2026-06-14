@@ -208,6 +208,22 @@ function FlyToSelected({ stopId, stops }) {
   return null;
 }
 
+function MapScrollHandler() {
+  useMapEvents({
+    click: () => {
+      const searchSection = document.getElementById("pencarian-dan-peta");
+      if (searchSection) {
+        // Meluncur mulus tepat ke elemen search bar
+        searchSection.scrollIntoView({
+          behavior: "smooth",
+          block: "start", // Membuat bagian atas search bar pas di atas layar
+        });
+      }
+    },
+  });
+  return null;
+}
+
 export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds, onSelectStop }) {
   const matchedIds = matchingStopIds ?? new Set();
 
@@ -232,7 +248,7 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
   const center = fallbackRoutePositions[0] ?? routePositions[0] ?? defaultCenter;
 
   return (
-    <section className="relative z-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70" id="peta">
+    <section className="relative z-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
       <MapContainer
         center={center}
         // BATASAN MAXBOUNDS TELAH DIHAPUS TOTAL AGAR BEBAS DIGESER

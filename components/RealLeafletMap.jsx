@@ -145,19 +145,42 @@ function FitRouteBounds({ positions }) {
 
 // Zoom in ke halte yang dipilih, tanpa zoom out
 // Zoom in dan geser peta otomatis ke halte yang dipilih/dicari
-function FlyToSelected({ stop }) {
+// Zoom in dan geser peta otomatis ke halte yang dicari/dipilih
+function FlyToSelected({ stopId, stops }) {
   const map = useMap();
+  const lastValidStopId = useRef("");
 
   useEffect(() => {
-    // Jika tidak ada halte yang dipilih atau koordinat tidak valid, jangan jalankan
-    if (!stop || !stop.lat || !stop.lng) return;
+    // KUNCI AMAN: Pas ditutup atau diklik silang, peta DIJAMIN DIAM dan gak geser
+    if (!stopId || (lastValidStopId.current && stopId === stops[0]?.id && lastValidStopId.current !== stops[0]?.id)) {
+      if (!stopId) {
+        lastValidStopId.current = "";
+      }
+      return;
+    }
 
-    // Terbang otomatis ke koordinat halte dengan animasi smooth
-    map.flyTo([stop.lat, stop.lng], 17, {
-      duration: 1.2, // Kecepatan animasi pergerakan kamera (dalam detik)
+    const currentStop = stops.find((s) => s.id === stopId);
+    if (!currentStop || !currentStop.lat || !currentStop.lng) return;
+
+    lastValidStopId.current = stopId;
+
+    const zoomTarget = 17;
+
+    // 1. Ubah koordinat map ke titik pixel kontainer
+    const targetPoint = map.project([currentStop.lat, currentStop.lng], zoomTarget);
+    
+    // 2. DISINI KUNCINYA: Kita TAMBAH nilai Y (misal +150px)
+    // Ini menarik kamera peta ke bawah, otomatis titik haltenya terdorong ke atas panel popup
+    const offsetPoint = targetPoint.add([0, 150]); 
+    const targetLatLng = map.unproject(offsetPoint, zoomTarget);
+
+    // 3. Eksekusi terbang satu tempo gerakan bareng animasi zoom
+    map.flyTo(targetLatLng, zoomTarget, {
+      duration: 1.2,
       easeLinearity: 0.25
     });
-  }, [map, stop]); // Triger berjalan otomatis setiap kali data 'stop' berubah
+
+  }, [map, stopId]);
 
   return null;
 }
@@ -193,9 +216,9 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
 
   return (
     <section className="relative z-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70" id="peta">
-      <div className="absolute right-5 top-5 z-[500] rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-sm font-black text-blue-800 shadow-sm">
+      {/*<div className="absolute right-5 top-5 z-[500] rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-sm font-black text-blue-800 shadow-sm">
         Rute Utama BusUNS
-      </div>
+      </div>*/}
       <MapContainer
         center={center}
         maxBounds={routeBounds ?? undefined}
@@ -240,7 +263,8 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
           );
         })}
         <FitRouteBounds positions={routePositions} />
-        <FlyToSelected stop={selectedStop} />
+        {/* Kirim ID dan daftar semua halte, bukan objek tunggal yang gampang ke-reset */}
+      <FlyToSelected stopId={selectedStopId} stops={mappedStops} />
       </MapContainer>
     </section>
   );

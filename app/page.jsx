@@ -107,14 +107,32 @@ export default function HomePage() {
     }, 380);
   }
 
-  const handleSelectFromSearch = (stopId) => {
-    // 1. Jalankan fungsi bawaan agar state id berubah dan panel samping/bawah terbuka
-    selectStop(stopId);
-    
-    // 2. Bersihkan teks kolom pencarian setelah diklik
-    setQuery("");
-    setIsFocused(false);
-  };
+const handleSelectFromSearch = (stopId) => {
+  // 1. Jalankan fungsi agar state ID berubah dan peta otomatis fokus (flyTo)
+  selectStop(stopId);
+  
+  // 2. Bersihkan teks kolom pencarian dan hilangkan fokus dropdown
+  setQuery("");
+  setIsFocused(false);
+
+  // 3. Smooth scroll dengan offset/jarak aman agar peta tidak terlalu naik ke atas
+  setTimeout(() => {
+    const mapElement = document.getElementById("peta");
+    if (mapElement) {
+      // Ambil posisi elemen peta relatif terhadap halaman
+      const elementPosition = mapElement.getBoundingClientRect().top + window.scrollY;
+      
+      // Kurangi posisi koordinat y (misal dikurangi 80px atau sesuai kebutuhan lo) 
+      // Supaya pas bergeser, dia gak mentok di atas layar
+      const offsetPosition = elementPosition - 80; 
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth" // Tetap smooth jalannya
+      });
+    }
+  }, 100);
+};
 
 /*block kode buat loading */
 if (loading) {

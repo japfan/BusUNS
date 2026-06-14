@@ -206,14 +206,14 @@ if (loading) {
         </div>
       </section>
 
-      {!operationalStatus?.isOperating && (
+      {/*{!operationalStatus?.isOperating && (
         <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-6">
           <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-900">
             <strong className="block text-lg">Bus sedang tidak beroperasi.</strong>
             <p className="mt-1 font-semibold">{operationalStatus?.message}</p>
           </div>
         </section>
-      )}
+      )}*/}
 
       {/* ── SEARCH ── */}
       <section className="mx-auto w-[min(1180px,calc(100%-32px))] pb-3" id="peta">

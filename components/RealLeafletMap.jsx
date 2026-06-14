@@ -144,15 +144,20 @@ function FitRouteBounds({ positions }) {
 }
 
 // Zoom in ke halte yang dipilih, tanpa zoom out
+// Zoom in dan geser peta otomatis ke halte yang dipilih/dicari
 function FlyToSelected({ stop }) {
   const map = useMap();
 
   useEffect(() => {
-    if (!stop) return;
-    const currentZoom = map.getZoom();
-    const targetZoom = Math.max(currentZoom, 18); // zoom in, tidak pernah zoom out
-    map.flyTo([stop.lat, stop.lng], targetZoom, { duration: 0.8 });
-  }, [map, stop]);
+    // Jika tidak ada halte yang dipilih atau koordinat tidak valid, jangan jalankan
+    if (!stop || !stop.lat || !stop.lng) return;
+
+    // Terbang otomatis ke koordinat halte dengan animasi smooth
+    map.flyTo([stop.lat, stop.lng], 17, {
+      duration: 1.2, // Kecepatan animasi pergerakan kamera (dalam detik)
+      easeLinearity: 0.25
+    });
+  }, [map, stop]); // Triger berjalan otomatis setiap kali data 'stop' berubah
 
   return null;
 }
@@ -188,7 +193,7 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
 
   return (
     <section className="relative z-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70" id="peta">
-      <div className="absolute left-5 top-5 z-[500] rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-sm font-black text-blue-800 shadow-sm">
+      <div className="absolute right-5 top-5 z-[500] rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-sm font-black text-blue-800 shadow-sm">
         Rute Utama BusUNS
       </div>
       <MapContainer

@@ -107,10 +107,14 @@ export default function HomePage() {
     }, 380);
   }
 
-  function handleSelectFromSearch(stopId) {
+  const handleSelectFromSearch = (stopId) => {
+    // 1. Jalankan fungsi bawaan agar state id berubah dan panel samping/bawah terbuka
     selectStop(stopId);
+    
+    // 2. Bersihkan teks kolom pencarian setelah diklik
     setQuery("");
-  }
+    setIsFocused(false);
+  };
 
 /*block kode buat loading */
 if (loading) {

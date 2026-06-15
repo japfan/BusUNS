@@ -1,16 +1,37 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 import { busUnsRouteLine } from "@/data/routeLine";
 
 const defaultCenter = [-7.5606, 110.8592];
 
-function createStopIcon({ selected, matched }) {
-  const color = selected ? "#eab308" : matched ? "#0284c7" : "#64748b";
+// Detect system dark mode preference
+function useIsDarkMode() {
+  const [isDark, setIsDark] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setIsDark(mq.matches);
+    const handler = (e) => setIsDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isDark;
+}
+
+function createStopIcon({ selected, matched, isDark }) {
+  const accentColor = isDark ? "#22d3ee" : "#0ea5e9";
+  const matchColor = isDark ? "#38bdf8" : "#0284c7";
+  const mutedColor = isDark ? "#475569" : "#94a3b8";
+
+  const color = selected ? accentColor : matched ? matchColor : mutedColor;
   const size = selected ? "40px" : "34px";
   const innerSize = selected ? "12px" : "10px";
+  const glowColor = selected
+    ? (isDark ? "rgba(34, 211, 238, 0.45)" : "rgba(14, 165, 233, 0.35)")
+    : "rgba(15, 23, 42, 0.22)";
 
   return L.divIcon({
     className: "",
@@ -22,13 +43,13 @@ function createStopIcon({ selected, matched }) {
             width: 100%;
             height: 100%;
             border-radius: 999px;
-            background: #eab308;
-            opacity: 0.4;
+            background: ${accentColor};
+            opacity: 0.35;
             animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
           "></div>
           <style>
             @keyframes ping {
-              75%, 100% { transform: scale(1.8); opacity: 0; }
+              75%, 100% { transform: scale(2); opacity: 0; }
             }
           </style>
         ` : ""}
@@ -38,10 +59,10 @@ function createStopIcon({ selected, matched }) {
           height: ${size};
           display: grid;
           place-items: center;
-          border: 4px solid white;
+          border: 3px solid ${isDark ? "rgba(15, 23, 42, 0.8)" : "white"};
           border-radius: 999px;
           background: ${color};
-          box-shadow: ${selected ? "0 12px 28px rgba(234, 179, 8, 0.4)" : "0 10px 24px rgba(15, 23, 42, 0.22)"};
+          box-shadow: 0 0 ${selected ? "20px" : "12px"} ${glowColor};
           z-index: 10;
           transition: all 0.3s ease;
         ">
@@ -49,7 +70,7 @@ function createStopIcon({ selected, matched }) {
             width: ${innerSize};
             height: ${innerSize};
             border-radius: 999px;
-            background: white;
+            background: ${isDark ? "#0f172a" : "white"};
           "></div>
         </div>
       </div>
@@ -60,29 +81,32 @@ function createStopIcon({ selected, matched }) {
   });
 }
 
-function createArrowIcon(angle) {
+function createArrowIcon(angle, isDark) {
+  const bgColor = isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.92)";
+  const arrowColor = isDark ? "#22d3ee" : "#0369a1";
+  const shadowColor = isDark ? "rgba(34, 211, 238, 0.5)" : "rgba(14, 165, 233, 0.4)";
+  const borderColor = isDark ? "rgba(34, 211, 238, 0.4)" : "rgba(14, 165, 233, 0.35)";
   return L.divIcon({
     className: "",
     html: `
       <div style="
-        width: 22px;
-        height: 22px;
+        width: 18px;
+        height: 18px;
         display: grid;
         place-items: center;
         transform: rotate(${angle}deg);
+        background: ${bgColor};
+        border: 1.5px solid ${borderColor};
+        border-radius: 999px;
+        box-shadow: 0 1px 4px ${shadowColor};
       ">
-        <div style="
-          width: 0;
-          height: 0;
-          border-top: 5px solid transparent;
-          border-bottom: 5px solid transparent;
-          border-left: 10px solid #f59e0b;
-          filter: drop-shadow(0 2px 4px rgba(15, 23, 42, 0.28));
-        "></div>
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="${arrowColor}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
       </div>
     `,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
   });
 }
 
@@ -90,7 +114,7 @@ function distanceInMeters(start, end) {
   return L.latLng(start).distanceTo(L.latLng(end));
 }
 
-function RouteDirectionArrows({ positions, stopPositions }) {
+function RouteDirectionArrows({ positions, stopPositions, isDark }) {
   const map = useMap();
   const arrows = useMemo(() => {
     const validPositions = positions.filter(p => p && p[0] && p[1]);
@@ -98,9 +122,9 @@ function RouteDirectionArrows({ positions, stopPositions }) {
 
     const sampled = [];
     
-    // ATUR JARAK ANTAR PANAH DI SINI (Misal: Tiap 60 meter jalan, munculkan 1 panah)
-    const arrowIntervalMeters = 60; 
-    const minDistanceFromStop = 35; // Jarak aman dari halte agar tidak bertumpuk
+    // ATUR JARAK ANTAR PANAH DI SINI
+    const arrowIntervalMeters = 120; 
+    const minDistanceFromStop = 55; // Jarak aman dari halte agar tidak bertumpuk
 
     let accumulatedDistance = 0;
 
@@ -147,7 +171,7 @@ function RouteDirectionArrows({ positions, stopPositions }) {
 
   return arrows.map((arrow) => (
     <Marker
-      icon={createArrowIcon(arrow.angle)}
+      icon={createArrowIcon(arrow.angle, isDark)}
       interactive={false}
       key={arrow.id}
       position={arrow.position}
@@ -208,24 +232,9 @@ function FlyToSelected({ stopId, stops }) {
   return null;
 }
 
-function MapScrollHandler() {
-  useMapEvents({
-    click: () => {
-      const searchSection = document.getElementById("pencarian-dan-peta");
-      if (searchSection) {
-        // Meluncur mulus tepat ke elemen search bar
-        searchSection.scrollIntoView({
-          behavior: "smooth",
-          block: "start", // Membuat bagian atas search bar pas di atas layar
-        });
-      }
-    },
-  });
-  return null;
-}
-
 export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds, onSelectStop }) {
   const matchedIds = matchingStopIds ?? new Set();
+  const isDark = useIsDarkMode();
 
   const mappedStops = useMemo(
     () =>
@@ -247,8 +256,27 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
   const routePositions = manualRoutePositions.length >= 2 ? manualRoutePositions : fallbackRoutePositions;
   const center = fallbackRoutePositions[0] ?? routePositions[0] ?? defaultCenter;
 
+  // Tile URLs for light and dark mode
+  const tileUrl = isDark
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+  const tileAttribution = isDark
+    ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+    : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+
+  // Route colors
+  const routeOuterColor = isDark ? "rgba(34, 211, 238, 0.15)" : "rgba(14, 165, 233, 0.2)";
+  const routeInnerColor = isDark ? "#22d3ee" : "#0ea5e9";
+
   return (
-    <section className="relative z-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
+    <section
+      className="relative z-0 overflow-hidden rounded-2xl"
+      style={{
+        border: "1px solid var(--border-default)",
+        boxShadow: "var(--card-shadow), var(--card-shadow-glow)",
+      }}
+    >
       <MapContainer
         center={center}
         // BATASAN MAXBOUNDS TELAH DIHAPUS TOTAL AGAR BEBAS DIGESER
@@ -259,18 +287,19 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
         className="relative z-0 h-[540px] w-full"
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution={tileAttribution}
+          url={tileUrl}
+          key={tileUrl} // Force re-render when tile URL changes
         />
         <Polyline
           positions={routePositions}
-          pathOptions={{ color: "#bfdbfe", weight: 12, opacity: 0.35 }}
+          pathOptions={{ color: routeOuterColor, weight: 14, opacity: 0.5 }}
         />
         <Polyline
           positions={routePositions}
-          pathOptions={{ color: "#1d4ed8", weight: 6, opacity: 0.82 }}
+          pathOptions={{ color: routeInnerColor, weight: 5, opacity: 0.9 }}
         />
-        <RouteDirectionArrows positions={routePositions} stopPositions={stopPositions} />
+        <RouteDirectionArrows positions={routePositions} stopPositions={stopPositions} isDark={isDark} />
         
         {mappedStops.map((stop) => {
           const selected = selectedStopId === stop.id;
@@ -279,7 +308,7 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
           return (
             <Marker
               eventHandlers={{ click: () => onSelectStop(stop.id) }}
-              icon={createStopIcon({ selected, matched })}
+              icon={createStopIcon({ selected, matched, isDark })}
               key={stop.id}
               opacity={selected || matched ? 1 : 0.45}
               position={[stop.lat, stop.lng]}

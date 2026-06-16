@@ -279,9 +279,13 @@ export default function RealLeafletMap({ stops, selectedStopId, matchingStopIds,
     >
       <MapContainer
         center={center}
-        // BATASAN MAXBOUNDS TELAH DIHAPUS TOTAL AGAR BEBAS DIGESER
         maxZoom={19}
-        minZoom={14}
+        minZoom={15}
+        maxBounds={[
+          [-7.590, 110.830],   /* SW — batas bawah-kiri */
+          [-7.535, 110.890],   /* NE — batas atas-kanan */
+        ]}
+        maxBoundsViscosity={1.0}
         scrollWheelZoom
         zoom={15}
         className="relative z-0 h-[540px] w-full"

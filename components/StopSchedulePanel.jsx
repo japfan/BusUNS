@@ -17,24 +17,19 @@ export default function StopSchedulePanel({
         <aside
           className="hidden rounded-2xl p-6 md:grid place-items-center"
           style={{
-            background: "var(--bg-surface-glass)",
-            backdropFilter: "blur(20px) saturate(1.5)",
-            WebkitBackdropFilter: "blur(20px) saturate(1.5)",
+            background: "var(--bg-surface)",
             border: "1px solid var(--border-default)",
-            boxShadow: "var(--card-shadow)",
+            boxShadow: "var(--elevation-1)",
           }}
         >
           <div className="text-center">
             <div
               className="mx-auto mb-4 grid size-14 place-items-center rounded-2xl"
-              style={{
-                background: "var(--accent-glow)",
-                color: "var(--text-accent)",
-              }}
+              style={{ background: "var(--bg-inset)", color: "var(--text-accent)" }}
             >
               <MapPin size={24} />
             </div>
-            <p className="font-bold" style={{ color: "var(--text-tertiary)" }}>
+            <p className="font-semibold" style={{ color: "var(--text-tertiary)" }}>
               Klik halte pada peta untuk<br />melihat jadwal keberangkatan
             </p>
           </div>
@@ -47,7 +42,6 @@ export default function StopSchedulePanel({
   const now = currentTime ?? new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-  // ✅ Pakai ":" bukan "."
   function hasSchedulePassed(departure_time) {
     if (!departure_time) return false;
     const [hour, minute] = departure_time.split(":").map(Number);
@@ -55,14 +49,12 @@ export default function StopSchedulePanel({
     return hour * 60 + minute < currentMinutes;
   }
 
-  // Find the next upcoming schedule for glow highlight
   function isNextSchedule(departure_time) {
     if (!departure_time) return false;
     const [hour, minute] = departure_time.split(":").map(Number);
     if (!Number.isFinite(hour) || !Number.isFinite(minute)) return false;
     const mins = hour * 60 + minute;
     if (mins < currentMinutes) return false;
-    // Check if this is the first upcoming one
     const upcomingTimes = schedules
       .map((s) => {
         const [h, m] = (s.departure_time || "").split(":").map(Number);
@@ -83,11 +75,11 @@ export default function StopSchedulePanel({
           : "hidden rounded-2xl p-6 md:block"
       }
       style={{
-        background: "var(--bg-surface-glass)",
-        backdropFilter: "blur(24px) saturate(1.6)",
-        WebkitBackdropFilter: "blur(24px) saturate(1.6)",
+        background: mobile ? "var(--bg-surface-glass)" : "var(--bg-surface)",
+        backdropFilter: mobile ? "blur(20px) saturate(1.4)" : undefined,
+        WebkitBackdropFilter: mobile ? "blur(20px) saturate(1.4)" : undefined,
         border: "1px solid var(--border-default)",
-        boxShadow: mobile ? "0 -8px 40px rgba(0,0,0,0.15)" : "var(--card-shadow)",
+        boxShadow: mobile ? "0 -8px 40px rgba(0,0,0,0.15)" : "var(--elevation-1)",
       }}
     >
       {mobile ? (
@@ -99,31 +91,25 @@ export default function StopSchedulePanel({
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-wide" style={{ color: "var(--text-accent)" }}>
+          <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-accent)" }}>
             Jadwal halte
           </p>
-          <h2 className="mt-2 text-3xl font-black tracking-normal" style={{ color: "var(--text-primary)" }}>
+          <h2 className="mt-2 text-2xl font-extrabold" style={{ color: "var(--text-primary)" }}>
             {stop.name}
           </h2>
-          <p className="mt-2 flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--text-tertiary)" }}>
-            <MapPin size={16} aria-hidden="true" />
+          <p className="mt-1.5 flex items-center gap-2 text-sm" style={{ color: "var(--text-tertiary)" }}>
+            <MapPin size={14} aria-hidden="true" />
             {stop.location_description ?? "Deskripsi lokasi belum diisi"}
           </p>
         </div>
         {mobile ? (
           <button
-            className="rounded-xl p-2 transition-all duration-200"
+            className="cursor-pointer rounded-lg p-2 transition-colors duration-150"
             type="button"
             onClick={onClose}
             style={{
               border: "1px solid var(--border-default)",
               color: "var(--text-secondary)",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--accent-glow)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
             }}
           >
             <X size={18} />
@@ -132,40 +118,43 @@ export default function StopSchedulePanel({
       </div>
 
       <div
-        className="mt-5 rounded-xl p-4"
+        className="mt-4 rounded-xl p-3.5"
         style={{
           background: "var(--next-stop-bg)",
           border: "1px solid var(--next-stop-border)",
         }}
       >
         <p className="flex items-center gap-2 text-sm font-bold" style={{ color: "var(--next-stop-text)" }}>
-          <Navigation size={17} aria-hidden="true" />
+          <Navigation size={15} aria-hidden="true" />
           Halte berikutnya
         </p>
-        <strong className="mt-1 block text-xl" style={{ color: "var(--text-primary)" }}>
+        <strong className="mt-1 block text-lg font-extrabold" style={{ color: "var(--text-primary)" }}>
           {nextStop?.name ?? "Akhir rute"}
         </strong>
       </div>
 
       <div className="mt-5">
-        <p className="flex items-center gap-2 text-sm font-black uppercase tracking-wide" style={{ color: "var(--text-tertiary)" }}>
-          <Clock3 size={16} aria-hidden="true" />
+        <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+          <Clock3 size={14} aria-hidden="true" />
           Jam keberangkatan
         </p>
         <div className="mt-3 grid grid-cols-3 gap-2">
           {schedules.map((schedule) => {
-            // ✅ Pakai departure_time
             const passed = hasSchedulePassed(schedule.departure_time);
             const isNext = isNextSchedule(schedule.departure_time);
 
             return (
               <span
-                className={`rounded-xl px-3 py-3 text-center text-lg font-black transition-all duration-300 ${
-                  isNext ? "animate-time-glow" : ""
-                }`}
+                className="rounded-lg px-3 py-2.5 text-center text-base font-extrabold"
                 key={schedule.id}
                 style={
-                  passed
+                  isNext
+                    ? {
+                        background: "var(--accent-1)",
+                        color: "#ffffff",
+                        boxShadow: "var(--elevation-2)",
+                      }
+                    : passed
                     ? {
                         background: "var(--badge-passed-bg)",
                         color: "var(--badge-passed-text)",
@@ -176,14 +165,12 @@ export default function StopSchedulePanel({
                       }
                 }
               >
-                {/* ✅ Tampilkan HH:MM saja */}
                 {schedule.departure_time?.slice(0, 5) ?? "-"}
               </span>
             );
           })}
         </div>
       </div>
-
     </aside>
   );
 }

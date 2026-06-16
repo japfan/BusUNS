@@ -1,87 +1,121 @@
 import Link from "next/link";
-import { Bus, LayoutDashboard, Map, Megaphone } from "lucide-react";
+import { Bus, LayoutDashboard, Map, Megaphone, Route } from "lucide-react";
 
 export default function Navbar() {
   return (
     <header
-      className="sticky top-0 z-40 mx-auto mt-4 flex w-[min(1180px,calc(100%-32px))] items-center justify-between gap-4 rounded-2xl px-5 py-3 shadow-lg transition-card"
+      className="sticky top-0 z-40 transition-all duration-200"
       style={{
         background: "var(--bg-surface-glass)",
         backdropFilter: "blur(20px) saturate(1.6)",
         WebkitBackdropFilter: "blur(20px) saturate(1.6)",
-        border: "1px solid var(--border-default)",
-        boxShadow: "var(--card-shadow)",
+        borderBottom: "1px solid var(--border-subtle)",
+        boxShadow: "var(--elevation-1)",
       }}
     >
-      <Link className="flex items-center gap-3 font-black no-underline" href="/" style={{ color: "var(--text-primary)" }}>
-        <span
-          className="grid size-10 place-items-center rounded-xl text-white animate-gradient"
-          style={{
-            background: "var(--accent-gradient)",
-            backgroundSize: "200% 200%",
-            boxShadow: "0 4px 16px var(--accent-glow-strong)",
-          }}
-        >
-          <Bus size={20} aria-hidden="true" />
-        </span>
-        <span className="text-gradient font-black text-lg">BusUNS</span>
-      </Link>
-      <nav className="flex items-center gap-1 overflow-x-auto text-sm font-semibold" style={{ color: "var(--text-secondary)" }} aria-label="Navigasi utama">
+      <div className="mx-auto flex w-[min(1180px,calc(100%-32px))] items-center justify-between gap-4 py-3">
+        {/* Brand */}
         <Link
-          className="inline-flex items-center gap-2 rounded-xl px-3 py-2 transition-all duration-200"
-          href="/#peta"
-          style={{ color: "var(--text-secondary)" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--accent-glow)";
-            e.currentTarget.style.color = "var(--text-accent)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
+          className="flex items-center gap-2.5 font-extrabold no-underline"
+          href="/"
+          style={{ color: "var(--text-primary)" }}
         >
-          <Map size={16} aria-hidden="true" />
-          Peta
+          <span
+            className="grid size-9 place-items-center rounded-xl text-white"
+            style={{
+              background: "var(--accent-1)",
+              boxShadow: "0 2px 8px rgba(14, 165, 233, 0.35)",
+            }}
+          >
+            <Bus size={18} aria-hidden="true" />
+          </span>
+          <span className="hidden text-lg font-extrabold sm:block" style={{ color: "var(--text-accent)" }}>
+            Bus<span style={{ color: "var(--text-primary)" }}>UNS</span>
+          </span>
         </Link>
-        <Link
-          className="inline-flex items-center gap-2 rounded-xl px-3 py-2 transition-all duration-200"
-          href="/#pengumuman"
-          style={{ color: "var(--text-secondary)" }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--accent-glow)";
-            e.currentTarget.style.color = "var(--text-accent)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = "var(--text-secondary)";
-          }}
+
+        {/* Center nav links */}
+        <nav
+          className="flex items-center gap-0.5 text-sm font-semibold"
+          aria-label="Navigasi utama"
         >
-          <Megaphone size={16} aria-hidden="true" />
-          Pengumuman
-        </Link>
+          <Link
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 transition-colors duration-150"
+            href="/#halte"
+            style={{ color: "var(--text-secondary)" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--bg-inset)";
+              e.currentTarget.style.color = "var(--text-accent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            <Route size={15} aria-hidden="true" />
+            <span className="hidden sm:inline">Halte</span>
+          </Link>
+          <Link
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 transition-colors duration-150"
+            href="/#peta"
+            style={{ color: "var(--text-secondary)" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--bg-inset)";
+              e.currentTarget.style.color = "var(--text-accent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            <Map size={15} aria-hidden="true" />
+            <span className="hidden sm:inline">Peta</span>
+          </Link>
+          <Link
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-2 transition-colors duration-150"
+            href="/#pengumuman"
+            style={{ color: "var(--text-secondary)" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--bg-inset)";
+              e.currentTarget.style.color = "var(--text-accent)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-secondary)";
+            }}
+          >
+            <Megaphone size={15} aria-hidden="true" />
+            <span className="hidden sm:inline">Pengumuman</span>
+          </Link>
+        </nav>
+
+        {/* Admin CTA */}
         <Link
-          className="inline-flex items-center gap-2 rounded-xl px-3 py-2 transition-all duration-200"
+          className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-bold transition-all duration-150"
           href="/admin"
           aria-label="Dashboard admin"
           style={{
+            background: "var(--bg-inset)",
             border: "1px solid var(--border-default)",
             color: "var(--text-secondary)",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--accent-glow)";
-            e.currentTarget.style.color = "var(--text-accent)";
-            e.currentTarget.style.borderColor = "var(--border-accent)";
+            e.currentTarget.style.background = "var(--accent-1)";
+            e.currentTarget.style.color = "#ffffff";
+            e.currentTarget.style.borderColor = "transparent";
+            e.currentTarget.style.boxShadow = "0 2px 8px rgba(14, 165, 233, 0.3)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.background = "var(--bg-inset)";
             e.currentTarget.style.color = "var(--text-secondary)";
             e.currentTarget.style.borderColor = "var(--border-default)";
+            e.currentTarget.style.boxShadow = "none";
           }}
         >
-          <LayoutDashboard size={16} aria-hidden="true" />
-          Admin
+          <LayoutDashboard size={15} aria-hidden="true" />
+          <span className="hidden sm:inline">Admin</span>
         </Link>
-      </nav>
+      </div>
     </header>
   );
 }

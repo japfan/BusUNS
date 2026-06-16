@@ -398,7 +398,7 @@ if (authLoading) {
           <label className="mt-6 block font-bold text-slate-600">
             Email
             <input
-              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 transition-colors"
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors"
               type="email"
               value={credentials.email}
               onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
@@ -411,7 +411,7 @@ if (authLoading) {
           <label className="mt-4 block font-bold text-slate-600">
             Password
             <input
-              className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 transition-colors"
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 transition-colors"
               type="password"
               value={credentials.password}
               onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
@@ -592,7 +592,7 @@ if (loading) {
                 <label className="block font-bold text-slate-600">
                   Keterangan / Alasan Bus Berhenti
                   <textarea
-                    className="mt-2 w-full min-h-[80px] rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 transition-colors font-medium text-slate-800"
+                    className="mt-2 w-full min-h-[80px] rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-blue-500 transition-colors font-medium text-slate-800"
                     placeholder="Contoh: Bus sedang diservis rutin atau Driver sedang istirahat..."
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
@@ -723,7 +723,7 @@ if (loading) {
                 <label className="mt-5 block font-bold text-slate-600">
                   Halte keberangkatan
                   <select
-                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-semibold outline-none focus:border-blue-500"
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-semibold text-slate-900 outline-none focus:border-blue-500"
                     value={scheduleForm.stop_id || manageStop?.id || ""}
                     onChange={(e) => setScheduleForm({ ...scheduleForm, stop_id: e.target.value })}
                   >
@@ -743,7 +743,7 @@ if (loading) {
                 <label className="mt-4 block font-bold text-slate-600">
                   Catatan (opsional)
                   <input
-                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-blue-500"
                     value={scheduleForm.note || ""}
                     onChange={(e) => setScheduleForm({ ...scheduleForm, note: e.target.value })}
                     placeholder="Jadwal pagi, reguler, dll."
@@ -817,7 +817,7 @@ if (loading) {
                 <label className="block font-bold text-slate-600">
                   Nama halte
                   <input
-                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
                     value={stopForm.name}
                     onChange={(e) => setStopForm({ ...stopForm, name: e.target.value })}
                     placeholder="Nama halte"
@@ -827,7 +827,7 @@ if (loading) {
                 <label className="mt-4 block font-bold text-slate-600">
                   Deskripsi Lokasi
                   <textarea
-                    className="mt-2 w-full min-h-[80px] rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                    className="mt-2 w-full min-h-[80px] rounded-xl border border-slate-200 bg-white px-3 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500"
                     value={stopForm.location_description}
                     onChange={(e) => setStopForm({ ...stopForm, location_description: e.target.value })}
                     placeholder="Contoh: Seberang gedung Rektorat..."
@@ -836,7 +836,7 @@ if (loading) {
                 <label className="mt-4 block font-bold text-slate-600">
                   Urutan
                   <input
-                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
                     type="number"
                     min="1"
                     value={stopForm.stop_order}
@@ -846,7 +846,7 @@ if (loading) {
                 <label className="mt-4 block font-bold text-slate-600">
                   Halte berikutnya
                   <select
-                    className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 font-semibold outline-none focus:border-blue-500"
+                    className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 font-semibold text-slate-900 outline-none focus:border-blue-500"
                     value={stopForm.next_stop_id || ""}
                     onChange={(e) => setStopForm({ ...stopForm, next_stop_id: e.target.value || null })}
                   >
@@ -860,7 +860,7 @@ if (loading) {
                   <label className="block font-bold text-slate-600">
                     Latitude
                     <input
-                      className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
                       type="number"
                       step="0.000001"
                       value={stopForm.lat}
@@ -871,7 +871,7 @@ if (loading) {
                   <label className="block font-bold text-slate-600">
                     Longitude
                     <input
-                      className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+                      className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-slate-900 outline-none focus:border-blue-500"
                       type="number"
                       step="0.000001"
                       value={stopForm.lng}
@@ -902,14 +902,14 @@ if (loading) {
             onSubmit={saveAnnouncement}
           >
             <input
-              className="rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500"
               value={announcementForm.title}
               onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
               placeholder="Judul"
               required
             />
             <textarea
-              className="min-h-12 rounded-xl border border-slate-200 px-3 py-3 outline-none focus:border-blue-500"
+              className="min-h-12 rounded-xl border border-slate-200 bg-white px-3 py-3 text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500"
               value={announcementForm.content}
               onChange={(e) => setAnnouncementForm({ ...announcementForm, content: e.target.value })}
               placeholder="Isi pengumuman"

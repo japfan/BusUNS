@@ -311,60 +311,6 @@ export default function HomePage() {
           />
         </div>
 
-        {/* ── BUS IMAGE LEFT: mirror of right bus ── */}
-        <div
-          className="pointer-events-none absolute bottom-0 hidden md:block"
-          style={{
-            left: 0,
-            transform: `translateX(-18%) translateY(${busParallax.y * 0.35}px) scale(${busParallax.scale})`,
-            opacity: busParallax.opacity * 0.82,
-            transition: "transform 0.05s linear, opacity 0.05s linear",
-            willChange: "transform, opacity",
-            width: "clamp(600px, 56vw, 920px)",
-            zIndex: 2,
-          }}
-          aria-hidden="true"
-        >
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              right: "5%",
-              width: "70%",
-              height: "100px",
-              background: "radial-gradient(ellipse 80% 100% at 50% 100%, rgba(14,165,233,0.45) 0%, transparent 70%)",
-              filter: "blur(24px)",
-              zIndex: 0,
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              bottom: 2,
-              right: "10%",
-              width: "55%",
-              height: "24px",
-              background: "radial-gradient(ellipse, rgba(0,0,0,0.5) 0%, transparent 70%)",
-              filter: "blur(10px)",
-              zIndex: 0,
-            }}
-          />
-          <Image
-            src="/images/bus2.png"
-            alt="Bus kampus UNS 2"
-            width={920}
-            height={460}
-            priority
-            style={{
-              width: "100%",
-              height: "auto",
-              display: "block",
-              position: "relative",
-              zIndex: 1,
-              filter: "drop-shadow(0 32px 56px rgba(14,165,233,0.28)) drop-shadow(0 8px 24px rgba(0,0,0,0.6))",
-            }}
-          />
-        </div>
 
         <div className="relative z-[3] mx-auto w-[min(1180px,calc(100%-32px))]">
 

@@ -3,6 +3,18 @@ import { Megaphone } from "lucide-react";
 export default function AnnouncementCard({ announcement, onEdit, onDelete, index = 0 }) {
   const isAdmin = Boolean(onEdit);
 
+  const rawDate = announcement.createdAt || announcement.created_at;
+  const formattedDate = rawDate
+    ? new Date(rawDate).toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Jakarta",
+      }) + " WIB"
+    : "Baru saja";
+
   return (
     <article
       className={
